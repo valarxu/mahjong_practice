@@ -87,4 +87,19 @@
     width: 70px;
     height: 84px;
   }
+}
+
+.simulator-description {
+  margin-top: -1rem;
+  margin-bottom: 0.5rem;
+  color: #b8c4be;
+  font-size: 1.1rem;
+}
+
+.pattern-description {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #a0c8b0;
+  font-size: 1rem;
+  font-style: italic;
 } 
