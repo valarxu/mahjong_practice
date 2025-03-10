@@ -14,20 +14,30 @@
 
 .tiles-container {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   gap: 20px;
   margin-bottom: 2rem;
-  max-width: 1200px;
+  max-width: 1280px;
+  width: 100%;
+}
+
+.tile-type-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 0;
 }
 
 .simulator-tile {
-  font-size: 7.5rem;
+  font-size: 5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 150px;
-  height: 180px;
+  width: 70px;
+  height: 120px;
   background: none;
   box-shadow: none;
   border-radius: 0;
@@ -51,7 +61,8 @@
 .buttons-container {
   display: flex;
   gap: 1rem;
-  margin-top: 2rem;
+  margin-top: 0.5rem;
+  margin-bottom: 2rem;
 }
 
 .simulator-button, .back-button {
@@ -102,4 +113,20 @@
   color: #a0c8b0;
   font-size: 1rem;
   font-style: italic;
+}
+
+/* 移除不需要的滚动条样式 */
+.tile-type-row::-webkit-scrollbar,
+.tile-type-row::-webkit-scrollbar-track,
+.tile-type-row::-webkit-scrollbar-thumb,
+.tile-type-row::-webkit-scrollbar-thumb:hover {
+  display: none;
+}
+
+/* 可选：添加类型标签样式 */
+.type-label {
+  color: #a0c8b0;
+  margin-right: auto;
+  font-size: 0.9rem;
+  padding-left: 8px;
 } 
