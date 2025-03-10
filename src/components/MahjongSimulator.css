@@ -9,7 +9,7 @@
 
 .mahjong-simulator h1 {
   margin-bottom: 2rem;
-  color: #333;
+  color: #e0e0e0;
 }
 
 .tiles-container {
@@ -32,6 +32,20 @@
   box-shadow: none;
   border-radius: 0;
   padding: 0;
+  cursor: pointer;
+  transition: transform 0.2s, filter 0.2s;
+  position: relative;
+}
+
+.simulator-tile:hover {
+  transform: translateY(-10px);
+  filter: drop-shadow(0 10px 8px rgba(0, 0, 0, 0.2));
+}
+
+.simulator-tile.selected {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.8));
+  z-index: 10;
 }
 
 .buttons-container {
@@ -60,6 +74,10 @@
     font-size: 5rem;
     width: 100px;
     height: 120px;
+  }
+  
+  .simulator-tile:hover {
+    transform: translateY(-5px);
   }
 }
 

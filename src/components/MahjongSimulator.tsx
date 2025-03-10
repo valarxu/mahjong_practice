@@ -5,6 +5,7 @@ import './MahjongSimulator.css';
 const MahjongSimulator: React.FC = () => {
   const navigate = useNavigate();
   const [tiles, setTiles] = useState<string[]>([]);
+  const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
 
   // 麻将牌的emoji（不包括花牌）
   const allTiles = {
@@ -69,6 +70,12 @@ const MahjongSimulator: React.FC = () => {
     const drawn = shuffled.slice(0, 17);
     const sorted = sortTiles(drawn);
     setTiles(sorted);
+    setSelectedTileIndex(null); // 重置选中状态
+  };
+
+  // 处理牌的点击事件
+  const handleTileClick = (index: number) => {
+    setSelectedTileIndex(index === selectedTileIndex ? null : index);
   };
 
   // 初始加载时抽牌
@@ -86,7 +93,11 @@ const MahjongSimulator: React.FC = () => {
       
       <div className="tiles-container">
         {tiles.map((tile, index) => (
-          <div key={`tile-${index}`} className="simulator-tile">
+          <div 
+            key={`tile-${index}`} 
+            className={`simulator-tile ${selectedTileIndex === index ? 'selected' : ''}`}
+            onClick={() => handleTileClick(index)}
+          >
             {tile}
           </div>
         ))}

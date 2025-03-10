@@ -3,9 +3,9 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light;
-  color: #213547;
-  background-color: #ffffff;
+  color-scheme: dark;
+  color: #f0f0f0;
+  background-color: #2c3c35;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -24,9 +24,11 @@ a:hover {
 
 body {
   margin: 0;
-  padding: 0;
+  display: flex;
+  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #2c3c35;
 }
 
 h1 {
