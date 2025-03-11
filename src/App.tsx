@@ -9,7 +9,6 @@ function App() {
       <div className="app-container">
         <header className="app-header">
           <h1>麻将练习</h1>
-          <p>以下是麻将牌的展示</p>
         </header>
         <main>
           <Routes>
@@ -17,9 +16,6 @@ function App() {
             <Route path="/mahjong-simulator" element={<MahjongSimulator />} />
           </Routes>
         </main>
-        <footer>
-          <p>© {new Date().getFullYear()} 麻将练习应用</p>
-        </footer>
       </div>
     </BrowserRouter>
   )

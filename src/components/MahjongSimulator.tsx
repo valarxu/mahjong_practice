@@ -108,8 +108,7 @@ const MahjongSimulator: React.FC = () => {
 
   return (
     <div className="mahjong-simulator">
-      <h1>17张牌练习模拟器</h1>
-      <p className="simulator-description">17张麻将和牌练习</p>
+      <h1>听牌练习模拟器</h1>
       
       <div className="buttons-container">
         <button className="simulator-button" onClick={drawTiles}>
@@ -119,8 +118,6 @@ const MahjongSimulator: React.FC = () => {
           返回首页
         </button>
       </div>
-      
-      <p className="pattern-description">{patternDescription}</p>
       
       <div className="tiles-container">
         {['characters', 'bamboo', 'circles', 'honors'].map((type) => 
