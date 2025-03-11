@@ -28,7 +28,7 @@ const MahjongTiles: React.FC = () => {
     <div className="mahjong-container">
       <div className="button-container">
         <button className="navigate-button" onClick={handleButtonClick}>
-          进入17张牌练习模拟器
+          听牌练习
         </button>
       </div>
       

@@ -129,4 +129,24 @@
   margin-right: auto;
   font-size: 0.9rem;
   padding-left: 8px;
+}
+
+/* 添加面子组和对子组的样式 */
+.tile-group {
+  display: flex;
+  justify-content: center;
+  margin: 0 5px;
+}
+
+.meld-group {
+  margin-right: 15px; /* 面子之间的间距 */
+}
+
+.pair-group {
+  margin-left: 15px; /* 对子和面子之间的间距 */
+}
+
+/* 同一组内的牌之间距离更近 */
+.tile-group .simulator-tile {
+  margin: 0 1px;
 } 

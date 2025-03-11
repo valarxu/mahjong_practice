@@ -13,6 +13,8 @@ export interface TileSet {
 export interface WinningHandResult {
   tiles: string[];
   description: string;
+  melds: string[][];  // 面子信息，每个面子是一个字符串数组
+  pair: string[];     // 对子信息
 }
 
 // 麻将牌的emoji（不包括花牌）
@@ -221,6 +223,131 @@ export const generatePair = (usedTiles: Map<string, number>): string[] => {
   return result;
 };
 
+// 判断一个面子是否为刻子（三张相同的牌）
+const isTriplet = (meld: string[]): boolean => {
+  return meld.length === 3 && meld[0] === meld[1] && meld[1] === meld[2];
+};
+
+// 判断一个面子是否为顺子（三张连续的牌）
+const isSequence = (meld: string[]): boolean => {
+  if (meld.length !== 3) return false;
+
+  // 获取牌的类型和序号
+  const getTileTypeAndIndex = (tile: string): [string, number] | null => {
+    for (const type of ['characters', 'bamboo', 'circles'] as const) {
+      const index = allTiles[type].indexOf(tile);
+      if (index !== -1) {
+        return [type, index];
+      }
+    }
+    return null;
+  };
+
+  const info1 = getTileTypeAndIndex(meld[0]);
+  const info2 = getTileTypeAndIndex(meld[1]);
+  const info3 = getTileTypeAndIndex(meld[2]);
+
+  // 如果任何一张牌不是数字牌，则不是顺子
+  if (!info1 || !info2 || !info3) return false;
+
+  // 判断是否同一类型且连续
+  return info1[0] === info2[0] && info2[0] === info3[0] && 
+         info2[1] === info1[1] + 1 && info3[1] === info2[1] + 1;
+};
+
+// 获取数字牌的相邻牌（前一张或后一张）
+const getAdjacentTile = (tile: string, direction: 'prev' | 'next'): string | null => {
+  for (const type of ['characters', 'bamboo', 'circles'] as const) {
+    const index = allTiles[type].indexOf(tile);
+    if (index !== -1) {
+      const newIndex = direction === 'prev' ? index - 1 : index + 1;
+      // 确保新索引在有效范围内（1-9）
+      if (newIndex >= 0 && newIndex < allTiles[type].length) {
+        return allTiles[type][newIndex];
+      }
+    }
+  }
+  return null;
+};
+
+// 获取牌的排序权重
+const getTileSortWeight = (tile: string): number => {
+  for (const type of ['characters', 'bamboo', 'circles', 'winds', 'dragons'] as const) {
+    const index = allTiles[type].indexOf(tile);
+    if (index !== -1) {
+      // 按类型和索引计算权重
+      const typeWeight = ['characters', 'bamboo', 'circles', 'winds', 'dragons'].indexOf(type) * 100;
+      return typeWeight + index;
+    }
+  }
+  return 999; // 未知牌给予较高权重
+};
+
+// 对面子内部进行排序
+const sortMeldInternally = (meld: string[]): string[] => {
+  return [...meld].sort((a, b) => getTileSortWeight(a) - getTileSortWeight(b));
+};
+
+// 比较两个面子的排序顺序
+const compareMelds = (meldA: string[], meldB: string[]): number => {
+  // 首先按照牌的类型排序
+  const typeA = getTileTypeCategory(meldA[0]);
+  const typeB = getTileTypeCategory(meldB[0]);
+  
+  if (typeA !== typeB) {
+    // 按类型排序：万、条、筒、风、箭
+    const typeOrder = ['characters', 'bamboo', 'circles', 'winds', 'dragons'];
+    return typeOrder.indexOf(typeA) - typeOrder.indexOf(typeB);
+  }
+  
+  // 同类型牌，按第一张牌的数值排序
+  return getTileSortWeight(meldA[0]) - getTileSortWeight(meldB[0]);
+};
+
+// 获取牌的类型类别
+const getTileTypeCategory = (tile: string): string => {
+  for (const type of ['characters', 'bamboo', 'circles', 'winds', 'dragons'] as const) {
+    if (allTiles[type].includes(tile)) {
+      return type;
+    }
+  }
+  return 'unknown';
+};
+
+// 替换面子中的一张牌
+const replaceTileInMeld = (
+  meld: string[], 
+  tileToReplace: string, 
+  newTile: string, 
+  usedTiles: Map<string, number>
+): boolean => {
+  // 确保新牌不会超过4张的限制
+  const newTileCount = (usedTiles.get(newTile) || 0);
+  if (newTileCount >= 4) return false;
+
+  // 更新使用牌的计数
+  const index = meld.findIndex(t => t === tileToReplace);
+  if (index === -1) return false;
+
+  // 减少被替换牌的计数
+  const oldCount = usedTiles.get(tileToReplace) || 0;
+  usedTiles.set(tileToReplace, Math.max(0, oldCount - 1));
+  
+  // 增加新牌的计数
+  usedTiles.set(newTile, newTileCount + 1);
+  
+  // 替换牌
+  meld[index] = newTile;
+  
+  // 对面子内部进行排序
+  const sortedTiles = sortMeldInternally(meld);
+  for (let i = 0; i < meld.length; i++) {
+    meld[i] = sortedTiles[i];
+  }
+  
+  return true;
+};
+
 // 生成符合17张牌和牌的牌型
 export const generateWinningHand = (): WinningHandResult => {
   const usedTiles = new Map<string, number>();
@@ -231,18 +358,80 @@ export const generateWinningHand = (): WinningHandResult => {
     {
       description: "标准和牌型 - 五面子一对",
       generator: () => {
-        // 生成5个面子
-        const melds: string[] = [];
+        // 生成5个面子并保存面子信息
+        const allMelds: string[][] = [];
+        let allTiles: string[] = [];
+        
         for (let i = 0; i < 5; i++) {
-          melds.push(...generateMeld(usedTiles));
+          const meld = generateMeld(usedTiles);
+          allMelds.push([...meld]); // 保存面子信息
+          allTiles = [...allTiles, ...meld];
         }
         
         // 生成1个对子
         const pair = generatePair(usedTiles);
         
+        // 随机挑选两个面子进行调整
+        if (allMelds.length >= 2) {
+          // 打乱面子数组顺序
+          const shuffledMelds = [...allMelds].sort(() => Math.random() - 0.5);
+          
+          // 尝试调整前两个面子
+          for (let i = 0; i < 2; i++) {
+            const meldToAdjust = shuffledMelds[i];
+            
+            if (isTriplet(meldToAdjust)) {
+              // 如果是刻子，尝试将其中一张替换为前一张或后一张
+              const tileToReplace = meldToAdjust[0]; // 所有牌都一样，取第一张
+              const direction = Math.random() < 0.5 ? 'prev' : 'next';
+              const newTile = getAdjacentTile(tileToReplace, direction);
+              
+              // 如果找到合适的相邻牌，进行替换
+              if (newTile) {
+                // 尝试替换刻子中的一张牌
+                const replaceIndex = Math.floor(Math.random() * 3);
+                
+                // 更新面子中的牌、原数组和使用计数
+                if (replaceTileInMeld(meldToAdjust, tileToReplace, newTile, usedTiles)) {
+                  // 更新原始的allTiles数组
+                  const tileIndex = allTiles.findIndex(t => t === tileToReplace);
+                  if (tileIndex !== -1) {
+                    allTiles[tileIndex] = newTile;
+                  }
+                }
+              }
+            } else if (isSequence(meldToAdjust)) {
+              // 如果是顺子，将其中一张替换为顺子中的另一张
+              const replaceIndex = Math.floor(Math.random() * 3);
+              const duplicateIndex = (replaceIndex + 1 + Math.floor(Math.random() * 2)) % 3;
+              
+              const tileToReplace = meldToAdjust[replaceIndex];
+              const newTile = meldToAdjust[duplicateIndex];
+              
+              // 更新面子中的牌、原数组和使用计数
+              if (replaceTileInMeld(meldToAdjust, tileToReplace, newTile, usedTiles)) {
+                // 更新原始的allTiles数组
+                const tileIndex = allTiles.findIndex(t => t === tileToReplace);
+                if (tileIndex !== -1) {
+                  allTiles[tileIndex] = newTile;
+                }
+              }
+            }
+          }
+          
+          // 更新tiles数组，保持顺序，并且按照面子类型排序
+          allMelds.sort(compareMelds);
+          allTiles = [];
+          for (const meld of allMelds) {
+            allTiles = [...allTiles, ...meld];
+          }
+        }
+        
         return {
-          tiles: [...melds, ...pair],
-          description: "标准和牌型 - 五面子一对"
+          tiles: [...allTiles, ...pair],
+          melds: allMelds,
+          pair: pair,
+          description: "练习牌型 - 有两组面子被打乱"
         };
       }
     },
@@ -269,4 +458,50 @@ export const sortTiles = (tiles: string[]) => {
   });
   
   return [...tiles].sort((a, b) => tileOrder[a] - tileOrder[b]);
+};
+
+// 按类型和面子分组显示麻将牌（修改groupTilesByTypeAndMeld函数）
+const groupTilesByTypeAndMeld = (tiles: string[], melds: string[][], pair: string[]) => {
+  // 创建分类组，每个花色分开
+  const groups: {[key: string]: Array<{isMeld: boolean, tiles: string[]}> } = {
+    characters: [], // 万子
+    bamboo: [],     // 条子
+    circles: [],    // 筒子
+    honors: []      // 字牌（风牌和箭牌）
+  };
+  
+  // 复制一个排序后的面子数组
+  const sortedMelds = [...melds].sort(compareMelds);
+  
+  // 按面子分组处理
+  for (const meld of sortedMelds) {
+    // 确定面子类型
+    let meldType = "";
+    const firstTile = meld[0];
+    
+    if (allTiles.characters.includes(firstTile)) {
+      meldType = "characters";
+    } else if (allTiles.bamboo.includes(firstTile)) {
+      meldType = "bamboo";
+    } else if (allTiles.circles.includes(firstTile)) {
+      meldType = "circles";
+    } else if (allTiles.winds.includes(firstTile) || allTiles.dragons.includes(firstTile)) {
+      meldType = "honors";
+    }
+    
+    // 添加到对应类型组
+    if (meldType) {
+      groups[meldType].push({
+        isMeld: true,
+        tiles: [...meld]
+      });
+    }
+  }
+  
+  // 处理对子
+  if (pair.length === 2) {
+    // ... 现有代码保持不变 ...
+  }
+  
+  return groups;
 }; 

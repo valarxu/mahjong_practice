@@ -10,33 +10,68 @@ import {
 const MahjongSimulator: React.FC = () => {
   const navigate = useNavigate();
   const [tiles, setTiles] = useState<string[]>([]);
+  const [melds, setMelds] = useState<string[][]>([]); // 保存面子信息
+  const [pair, setPair] = useState<string[]>([]); // 保存对子信息
   const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
   const [patternDescription, setPatternDescription] = useState<string>("");
 
-  // 按类型分组显示麻将牌，将风牌和箭牌合并为"字牌"
-  const groupTilesByType = (tiles: string[]) => {
-    const groups: {[key: string]: string[]} = {
-      characters: [],  // 万子
-      bamboo: [],      // 条子
-      circles: [],     // 筒子
-      honors: []       // 字牌（风牌和箭牌）
+  // 按类型和面子分组显示麻将牌
+  const groupTilesByTypeAndMeld = (tiles: string[], melds: string[][], pair: string[]) => {
+    // 创建分类组，每个花色分开
+    const groups: {[key: string]: Array<{isMeld: boolean, tiles: string[]}> } = {
+      characters: [], // 万子
+      bamboo: [],     // 条子
+      circles: [],    // 筒子
+      honors: []      // 字牌（风牌和箭牌）
     };
     
-    // 将每张牌分配到对应的类型组
-    tiles.forEach(tile => {
-      // 对于数牌（万、条、筒）正常分组
-      if (allTiles.characters.includes(tile)) {
-        groups.characters.push(tile);
-      } else if (allTiles.bamboo.includes(tile)) {
-        groups.bamboo.push(tile);
-      } else if (allTiles.circles.includes(tile)) {
-        groups.circles.push(tile);
-      } 
-      // 将风牌和箭牌都归入"字牌"类别
-      else if (allTiles.winds.includes(tile) || allTiles.dragons.includes(tile)) {
-        groups.honors.push(tile);
+    // 按面子分组处理
+    for (const meld of melds) {
+      // 确定面子类型
+      let meldType = "";
+      const firstTile = meld[0];
+      
+      if (allTiles.characters.includes(firstTile)) {
+        meldType = "characters";
+      } else if (allTiles.bamboo.includes(firstTile)) {
+        meldType = "bamboo";
+      } else if (allTiles.circles.includes(firstTile)) {
+        meldType = "circles";
+      } else if (allTiles.winds.includes(firstTile) || allTiles.dragons.includes(firstTile)) {
+        meldType = "honors";
       }
-    });
+      
+      // 添加到对应类型组
+      if (meldType) {
+        groups[meldType].push({
+          isMeld: true,
+          tiles: [...meld]
+        });
+      }
+    }
+    
+    // 处理对子
+    if (pair.length === 2) {
+      const pairTile = pair[0];
+      let pairType = "";
+      
+      if (allTiles.characters.includes(pairTile)) {
+        pairType = "characters";
+      } else if (allTiles.bamboo.includes(pairTile)) {
+        pairType = "bamboo";
+      } else if (allTiles.circles.includes(pairTile)) {
+        pairType = "circles";
+      } else if (allTiles.winds.includes(pairTile) || allTiles.dragons.includes(pairTile)) {
+        pairType = "honors";
+      }
+      
+      if (pairType) {
+        groups[pairType].push({
+          isMeld: false,
+          tiles: [...pair]
+        });
+      }
+    }
     
     return groups;
   };
@@ -44,8 +79,9 @@ const MahjongSimulator: React.FC = () => {
   // 抽取17张牌的和牌型
   const drawTiles = () => {
     const result = generateWinningHand();
-    const sorted = sortTiles(result.tiles);
-    setTiles(sorted);
+    setTiles(result.tiles);
+    setMelds(result.melds);
+    setPair(result.pair);
     setPatternDescription(result.description);
     setSelectedTileIndex(null); // 重置选中状态
   };
@@ -65,19 +101,10 @@ const MahjongSimulator: React.FC = () => {
   };
 
   // 分组后的麻将牌
-  const tileGroups = groupTilesByType(tiles);
+  const tileGroups = groupTilesByTypeAndMeld(tiles, melds, pair);
   
-  // 获取全局索引（用于选中状态）
-  const getGlobalIndex = (typeIndex: number, tileIndex: number): number => {
-    let globalIndex = tileIndex;
-    const types = ['characters', 'bamboo', 'circles', 'honors'];
-    
-    for (let i = 0; i < typeIndex; i++) {
-      globalIndex += tileGroups[types[i]].length;
-    }
-    
-    return globalIndex;
-  };
+  // 跟踪全局索引
+  let globalIndex = 0;
 
   return (
     <div className="mahjong-simulator">
@@ -96,21 +123,28 @@ const MahjongSimulator: React.FC = () => {
       <p className="pattern-description">{patternDescription}</p>
       
       <div className="tiles-container">
-        {Object.keys(tileGroups).map((type, typeIndex) => 
+        {['characters', 'bamboo', 'circles', 'honors'].map((type) => 
           tileGroups[type].length > 0 && (
             <div key={`type-${type}`} className="tile-type-row">
-              {tileGroups[type].map((tile, tileIndex) => {
-                const globalIndex = getGlobalIndex(typeIndex, tileIndex);
-                return (
-                  <div 
-                    key={`tile-${globalIndex}`} 
-                    className={`simulator-tile ${selectedTileIndex === globalIndex ? 'selected' : ''}`}
-                    onClick={() => handleTileClick(globalIndex)}
-                  >
-                    {tile}
-                  </div>
-                );
-              })}
+              {tileGroups[type].map((group, groupIndex) => (
+                <div 
+                  key={`group-${type}-${groupIndex}`} 
+                  className={`tile-group ${group.isMeld ? 'meld-group' : 'pair-group'}`}
+                >
+                  {group.tiles.map((tile) => {
+                    const currentIndex = globalIndex++;
+                    return (
+                      <div 
+                        key={`tile-${currentIndex}`} 
+                        className={`simulator-tile ${selectedTileIndex === currentIndex ? 'selected' : ''}`}
+                        onClick={() => handleTileClick(currentIndex)}
+                      >
+                        {tile}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           )
         )}
