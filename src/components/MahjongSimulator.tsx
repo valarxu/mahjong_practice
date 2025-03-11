@@ -3,20 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import './MahjongSimulator.css';
 import { 
   generateWinningHand, 
-  sortTiles,
-  allTiles
+  allTiles,
+  getTileTypeCategory
 } from '../utils/mahjongUtils';
 
 const MahjongSimulator: React.FC = () => {
   const navigate = useNavigate();
-  const [tiles, setTiles] = useState<string[]>([]);
   const [melds, setMelds] = useState<string[][]>([]); // 保存面子信息
   const [pair, setPair] = useState<string[]>([]); // 保存对子信息
   const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
-  const [patternDescription, setPatternDescription] = useState<string>("");
+  const [discardInfo, setDiscardInfo] = useState<{tile: string, message: string} | null>(null);
 
   // 按类型和面子分组显示麻将牌
-  const groupTilesByTypeAndMeld = (tiles: string[], melds: string[][], pair: string[]) => {
+  const groupTilesByTypeAndMeld = (melds: string[][], pair: string[]) => {
     // 创建分类组，每个花色分开
     const groups: {[key: string]: Array<{isMeld: boolean, tiles: string[]}> } = {
       characters: [], // 万子
@@ -53,19 +52,13 @@ const MahjongSimulator: React.FC = () => {
     // 处理对子
     if (pair.length === 2) {
       const pairTile = pair[0];
-      let pairType = "";
+      let pairType = getTileTypeCategory(pairTile);
       
-      if (allTiles.characters.includes(pairTile)) {
-        pairType = "characters";
-      } else if (allTiles.bamboo.includes(pairTile)) {
-        pairType = "bamboo";
-      } else if (allTiles.circles.includes(pairTile)) {
-        pairType = "circles";
-      } else if (allTiles.winds.includes(pairTile) || allTiles.dragons.includes(pairTile)) {
-        pairType = "honors";
+      if (pairType === 'winds' || pairType === 'dragons') {
+        pairType = 'honors';
       }
       
-      if (pairType) {
+      if (pairType && pairType !== 'unknown') {
         groups[pairType].push({
           isMeld: false,
           tiles: [...pair]
@@ -79,16 +72,45 @@ const MahjongSimulator: React.FC = () => {
   // 抽取17张牌的和牌型
   const drawTiles = () => {
     const result = generateWinningHand();
-    setTiles(result.tiles);
     setMelds(result.melds);
     setPair(result.pair);
-    setPatternDescription(result.description);
     setSelectedTileIndex(null); // 重置选中状态
+    setDiscardInfo(null); // 重置打出牌信息
   };
 
   // 处理牌的点击事件
   const handleTileClick = (index: number) => {
-    setSelectedTileIndex(index === selectedTileIndex ? null : index);
+    if (index === selectedTileIndex) {
+      setSelectedTileIndex(null);
+      setDiscardInfo(null);
+      return;
+    }
+    
+    setSelectedTileIndex(index);
+    
+    // 创建一个映射来存储每个渲染索引对应的实际牌
+    const indexToTileMap: {[key: number]: string} = {};
+    let globalIdx = 0;
+    
+    // 遍历所有牌组，建立索引到牌的映射
+    for (const type of ['characters', 'bamboo', 'circles', 'honors']) {
+      if (tileGroups[type]) {
+        for (const group of tileGroups[type]) {
+          for (const tile of group.tiles) {
+            indexToTileMap[globalIdx] = tile;
+            globalIdx++;
+          }
+        }
+      }
+    }
+    
+    // 使用映射获取正确的牌
+    const clickedTile = indexToTileMap[index];
+    
+    setDiscardInfo({
+      tile: clickedTile,
+      message: `打出了 ${clickedTile} 牌后，进张如下`
+    });
   };
 
   // 初始加载时抽牌
@@ -101,7 +123,7 @@ const MahjongSimulator: React.FC = () => {
   };
 
   // 分组后的麻将牌
-  const tileGroups = groupTilesByTypeAndMeld(tiles, melds, pair);
+  const tileGroups = groupTilesByTypeAndMeld(melds, pair);
   
   // 跟踪全局索引
   let globalIndex = 0;
@@ -146,6 +168,12 @@ const MahjongSimulator: React.FC = () => {
           )
         )}
       </div>
+      
+      {discardInfo && (
+        <div className="discard-info">
+          <p>{discardInfo.message}</p>
+        </div>
+      )}
     </div>
   );
 };

@@ -375,7 +375,7 @@ const getNumberTileIndex = (tile: string): number => {
 };
 
 // 获取牌的类型类别
-const getTileTypeCategory = (tile: string): string => {
+export const getTileTypeCategory = (tile: string): string => {
   for (const type of ['characters', 'bamboo', 'circles', 'winds', 'dragons'] as const) {
     if (allTiles[type].includes(tile)) {
       return type;
@@ -500,9 +500,6 @@ export const generateWinningHand = (): WinningHandResult => {
                   
                   // 如果找到合适的相邻牌，进行替换
                   if (newTile) {
-                    // 尝试替换刻子中的一张牌
-                    const replaceIndex = Math.floor(Math.random() * 3);
-                    
                     // 更新面子中的牌、原数组和使用计数
                     if (replaceTileInMeld(meldToAdjust, tileToReplace, newTile, usedTiles)) {
                       // 更新原始的allTiles数组
@@ -721,50 +718,4 @@ export const sortTiles = (tiles: string[]) => {
   });
   
   return [...tiles].sort((a, b) => tileOrder[a] - tileOrder[b]);
-};
-
-// 按类型和面子分组显示麻将牌（修改groupTilesByTypeAndMeld函数）
-const groupTilesByTypeAndMeld = (tiles: string[], melds: string[][], pair: string[]) => {
-  // 创建分类组，每个花色分开
-  const groups: {[key: string]: Array<{isMeld: boolean, tiles: string[]}> } = {
-    characters: [], // 万子
-    bamboo: [],     // 条子
-    circles: [],    // 筒子
-    honors: []      // 字牌（风牌和箭牌）
-  };
-  
-  // 复制一个排序后的面子数组
-  const sortedMelds = [...melds].sort(compareMelds);
-  
-  // 按面子分组处理
-  for (const meld of sortedMelds) {
-    // 确定面子类型
-    let meldType = "";
-    const firstTile = meld[0];
-    
-    if (allTiles.characters.includes(firstTile)) {
-      meldType = "characters";
-    } else if (allTiles.bamboo.includes(firstTile)) {
-      meldType = "bamboo";
-    } else if (allTiles.circles.includes(firstTile)) {
-      meldType = "circles";
-    } else if (allTiles.winds.includes(firstTile) || allTiles.dragons.includes(firstTile)) {
-      meldType = "honors";
-    }
-    
-    // 添加到对应类型组
-    if (meldType) {
-      groups[meldType].push({
-        isMeld: true,
-        tiles: [...meld]
-      });
-    }
-  }
-  
-  // 处理对子
-  if (pair.length === 2) {
-    // ... 现有代码保持不变 ...
-  }
-  
-  return groups;
 }; 
