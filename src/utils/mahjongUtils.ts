@@ -15,6 +15,7 @@ export interface WinningHandResult {
   description: string;
   melds: string[][];  // 面子信息，每个面子是一个字符串数组
   pair: string[];     // 对子信息
+  intactMelds: number[];  // 未被破坏的面子的索引
 }
 
 // 麻将牌的emoji（不包括花牌）
@@ -418,6 +419,203 @@ const replaceTileInMeld = (
   return true;
 };
 
+// 生成一个面子，考虑花色的限制、对子的花色，并避免与已有面子重叠
+const generateMeldWithTypeLimit = (
+  usedTiles: Map<string, number>, 
+  meldTypeCount: {[key: string]: number},
+  existingMelds: string[][] = [],
+  pairFlowerType: string | null = null
+): string[] => {
+  // 检查哪些花色未达到限制
+  const availableTypes = [];
+  
+  // 对子所在花色的面子限制为1个，其他花色限制为2个
+  if (meldTypeCount.characters < (pairFlowerType === 'characters' ? 1 : 2)) 
+    availableTypes.push('characters');
+  if (meldTypeCount.bamboo < (pairFlowerType === 'bamboo' ? 1 : 2)) 
+    availableTypes.push('bamboo');
+  if (meldTypeCount.circles < (pairFlowerType === 'circles' ? 1 : 2)) 
+    availableTypes.push('circles');
+  if (meldTypeCount.honors < (pairFlowerType === 'honors' ? 1 : 2)) 
+    availableTypes.push('honors');
+  
+  // 如果所有花色都已达到限制，则允许任何花色
+  const forceType = availableTypes.length > 0 ? 
+    availableTypes[Math.floor(Math.random() * availableTypes.length)] : 
+    null;
+    
+  // 决定是否生成顺子
+  const isSequential = Math.random() > 0.5;
+  
+  // 如果是强制字牌类型，则不能生成顺子
+  const shouldGenerateSequence = isSequential && forceType !== 'honors';
+  
+  // 收集已生成面子中的关键牌索引，用于避免重叠
+  const avoidTiles = new Set<string>();
+  for (const meld of existingMelds) {
+    // 对于顺子，我们记录其中的每张牌以避免重叠
+    if (isSequence(meld)) {
+      meld.forEach(tile => {
+        avoidTiles.add(tile);
+        
+        // 对于数字牌，还要避免相邻的牌（如果有3,4,5，就尽量避免2和6）
+        const prev = getAdjacentTile(tile, 'prev');
+        const next = getAdjacentTile(tile, 'next');
+        if (prev) avoidTiles.add(prev);
+        if (next) avoidTiles.add(next);
+      });
+    } 
+    // 对于刻子，记录该牌以及相邻牌
+    else if (isTriplet(meld)) {
+      const tile = meld[0]; // 刻子所有牌都一样
+      avoidTiles.add(tile);
+      
+      // 对于数字牌，尽量避免包含在其他顺子中的牌
+      const prev = getAdjacentTile(tile, 'prev');
+      const next = getAdjacentTile(tile, 'next');
+      if (prev) avoidTiles.add(prev);
+      if (next) avoidTiles.add(next);
+    }
+  }
+  
+  if (shouldGenerateSequence) {
+    // 生成顺子（三张连续的牌）
+    // 如果指定了花色，则使用该花色
+    const types = forceType && forceType !== 'honors' ? 
+      [forceType as 'characters' | 'bamboo' | 'circles'] : 
+      ['characters', 'bamboo', 'circles'] as const;
+    
+    // 尝试最多15次找到可以形成顺子的起始牌
+    for (let attempt = 0; attempt < 15; attempt++) {
+      const type = types[Math.floor(Math.random() * types.length)];
+      // 确保可以形成顺子（最大索引为6，因为需要连续3张牌）
+      const startIndex = Math.floor(Math.random() * 7);
+      
+      const tile1 = allTiles[type][startIndex];
+      const tile2 = allTiles[type][startIndex + 1];
+      const tile3 = allTiles[type][startIndex + 2];
+      
+      // 检查是否与现有面子有重叠
+      if (avoidTiles.has(tile1) || avoidTiles.has(tile2) || avoidTiles.has(tile3)) {
+        continue; // 如果有重叠，跳过尝试其他组合
+      }
+      
+      const count1 = usedTiles.get(tile1) || 0;
+      const count2 = usedTiles.get(tile2) || 0;
+      const count3 = usedTiles.get(tile3) || 0;
+      
+      // 检查是否所有牌都未达到4张的限制
+      if (count1 < 4 && count2 < 4 && count3 < 4) {
+        // 更新使用计数
+        updateUsedTiles(usedTiles, tile1);
+        updateUsedTiles(usedTiles, tile2);
+        updateUsedTiles(usedTiles, tile3);
+        
+        return [tile1, tile2, tile3];
+      }
+    }
+    
+    // 如果无法找到合适的顺子，退化为生成刻子
+    return generateMeldWithTypeLimit(usedTiles, meldTypeCount, existingMelds, pairFlowerType);
+  } else {
+    // 生成刻子（三张相同的牌）
+    // 尝试最多15次找到可以形成刻子的牌
+    for (let attempt = 0; attempt < 15; attempt++) {
+      // 根据指定的花色生成牌
+      let tile;
+      if (forceType === 'honors') {
+        tile = getRandomHonorTile(usedTiles);
+      } else if (forceType && forceType !== 'honors') {
+        // 从指定的数字牌花色中选择
+        const type = forceType as 'characters' | 'bamboo' | 'circles';
+        const index = Math.floor(Math.random() * 9);
+        tile = allTiles[type][index];
+        
+        // 检查是否已使用4张
+        if ((usedTiles.get(tile) || 0) >= 4) {
+          // 尝试其他索引
+          continue;
+        }
+      } else {
+        tile = getRandomTile(usedTiles);
+      }
+      
+      // 检查是否与现有面子有重叠
+      if (avoidTiles.has(tile)) {
+        continue; // 如果有重叠，跳过尝试其他组合
+      }
+      
+      const count = usedTiles.get(tile) || 0;
+      
+      // 检查是否这种牌加上要生成的3张后不会超过4张
+      if (count + 3 <= 4) {
+        // 更新使用计数
+        updateUsedTiles(usedTiles, tile);
+        updateUsedTiles(usedTiles, tile);
+        updateUsedTiles(usedTiles, tile);
+        
+        return [tile, tile, tile];
+      }
+    }
+    
+    // 如果无法找到合适的刻子，尝试生成替代方案
+    // 找一个剩余数量足够的牌
+    const result: string[] = [];
+    
+    if (forceType) {
+      // 如果指定了花色，尝试从该花色找牌
+      let availableTiles: string[] = [];
+      
+      if (forceType === 'honors') {
+        availableTiles = [...allTiles.winds, ...allTiles.dragons];
+      } else {
+        availableTiles = allTiles[forceType as 'characters' | 'bamboo' | 'circles'];
+      }
+      
+      // 找出使用次数最少的牌，且不与已有面子重叠
+      let bestTile = '';
+      let minUsed = 5;
+      
+      for (const tile of availableTiles) {
+        if (avoidTiles.has(tile)) continue; // 避开重叠牌
+        
+        const count = usedTiles.get(tile) || 0;
+        if (count < minUsed) {
+          minUsed = count;
+          bestTile = tile;
+        }
+      }
+      
+      // 尽可能使用这个牌
+      if (bestTile) {
+        const count = usedTiles.get(bestTile) || 0;
+        const canUse = Math.min(3, 4 - count);
+        
+        for (let i = 0; i < canUse; i++) {
+          result.push(bestTile);
+          updateUsedTiles(usedTiles, bestTile);
+        }
+      }
+    }
+    
+    // 如果不足3张，用其他牌补充
+    while (result.length < 3) {
+      let tile = getRandomTile(usedTiles);
+      // 尝试避开已有的牌
+      let attempt = 0;
+      while (avoidTiles.has(tile) && attempt < 10) {
+        tile = getRandomTile(usedTiles);
+        attempt++;
+      }
+      
+      result.push(tile);
+      updateUsedTiles(usedTiles, tile);
+    }
+    
+    return result;
+  }
+};
+
 // 生成符合17张牌和牌的牌型
 export const generateWinningHand = (): WinningHandResult => {
   const usedTiles = new Map<string, number>();
@@ -456,8 +654,8 @@ export const generateWinningHand = (): WinningHandResult => {
         let allTiles: string[] = [];
         
         for (let i = 0; i < 5; i++) {
-          // 控制每种花色的面子不超过限制
-          const meld = generateMeldWithTypeLimit(usedTiles, meldTypeCount, pairFlowerType);
+          // 控制每种花色的面子不超过限制，并避免与已有面子重叠
+          const meld = generateMeldWithTypeLimit(usedTiles, meldTypeCount, allMelds, pairFlowerType);
           
           // 更新面子类型计数
           const meldType = getTileTypeCategory(meld[0]);
@@ -471,52 +669,45 @@ export const generateWinningHand = (): WinningHandResult => {
           allTiles = [...allTiles, ...meld];
         }
         
+        // 保存所有面子的原始内容，用于后续比较
+        const originalMelds = allMelds.map(meld => [...meld]);
+        
+        // 初始化所有面子为完整的
+        let intactMelds = [0, 1, 2, 3, 4]; // 所有面子的索引
+        
         // 随机挑选两个非字牌的面子进行调整
         if (allMelds.length >= 2) {
           // 过滤出非字牌的面子
-          const nonHonorMelds = allMelds.filter(meld => {
+          const nonHonorMeldsWithIndices = allMelds.map((meld, index) => {
             const type = getTileTypeCategory(meld[0]);
-            return type !== 'winds' && type !== 'dragons';
-          });
+            return { meld, index, isHonor: type === 'winds' || type === 'dragons' };
+          }).filter(item => !item.isHonor);
           
           // 如果有足够的非字牌面子，进行调整
-          if (nonHonorMelds.length >= 2) {
-            // 打乱面子数组顺序
-            const shuffledMelds = [...nonHonorMelds].sort(() => Math.random() - 0.5);
+          if (nonHonorMeldsWithIndices.length >= 2) {
+            // 打乱非字牌面子数组顺序
+            const shuffledMelds = [...nonHonorMeldsWithIndices].sort(() => Math.random() - 0.5);
             
             // 尝试调整前两个面子
             for (let i = 0; i < Math.min(2, shuffledMelds.length); i++) {
-              const meldIndex = allMelds.findIndex(m => 
-                m.toString() === shuffledMelds[i].toString());
+              const { index: meldIndex } = shuffledMelds[i];
               
-              if (meldIndex !== -1) {
-                const meldToAdjust = allMelds[meldIndex];
+              // 从完整面子列表中移除这个面子的索引
+              const intactIndex = intactMelds.indexOf(meldIndex);
+              if (intactIndex !== -1) {
+                intactMelds.splice(intactIndex, 1);
+              }
+              
+              const meldToAdjust = allMelds[meldIndex];
+              
+              if (isTriplet(meldToAdjust)) {
+                // 如果是刻子，尝试将其中一张替换为前一张或后一张
+                const tileToReplace = meldToAdjust[0]; // 所有牌都一样，取第一张
+                const direction = Math.random() < 0.5 ? 'prev' : 'next';
+                const newTile = getAdjacentTile(tileToReplace, direction);
                 
-                if (isTriplet(meldToAdjust)) {
-                  // 如果是刻子，尝试将其中一张替换为前一张或后一张
-                  const tileToReplace = meldToAdjust[0]; // 所有牌都一样，取第一张
-                  const direction = Math.random() < 0.5 ? 'prev' : 'next';
-                  const newTile = getAdjacentTile(tileToReplace, direction);
-                  
-                  // 如果找到合适的相邻牌，进行替换
-                  if (newTile) {
-                    // 更新面子中的牌、原数组和使用计数
-                    if (replaceTileInMeld(meldToAdjust, tileToReplace, newTile, usedTiles)) {
-                      // 更新原始的allTiles数组
-                      const tileIndex = allTiles.findIndex(t => t === tileToReplace);
-                      if (tileIndex !== -1) {
-                        allTiles[tileIndex] = newTile;
-                      }
-                    }
-                  }
-                } else if (isSequence(meldToAdjust)) {
-                  // 如果是顺子，将其中一张替换为顺子中的另一张
-                  const replaceIndex = Math.floor(Math.random() * 3);
-                  const duplicateIndex = (replaceIndex + 1 + Math.floor(Math.random() * 2)) % 3;
-                  
-                  const tileToReplace = meldToAdjust[replaceIndex];
-                  const newTile = meldToAdjust[duplicateIndex];
-                  
+                // 如果找到合适的相邻牌，进行替换
+                if (newTile) {
                   // 更新面子中的牌、原数组和使用计数
                   if (replaceTileInMeld(meldToAdjust, tileToReplace, newTile, usedTiles)) {
                     // 更新原始的allTiles数组
@@ -526,12 +717,51 @@ export const generateWinningHand = (): WinningHandResult => {
                     }
                   }
                 }
+              } else if (isSequence(meldToAdjust)) {
+                // 如果是顺子，将其中一张替换为顺子中的另一张
+                const replaceIndex = Math.floor(Math.random() * 3);
+                const duplicateIndex = (replaceIndex + 1 + Math.floor(Math.random() * 2)) % 3;
+                
+                const tileToReplace = meldToAdjust[replaceIndex];
+                const newTile = meldToAdjust[duplicateIndex];
+                
+                // 更新面子中的牌、原数组和使用计数
+                if (replaceTileInMeld(meldToAdjust, tileToReplace, newTile, usedTiles)) {
+                  // 更新原始的allTiles数组
+                  const tileIndex = allTiles.findIndex(t => t === tileToReplace);
+                  if (tileIndex !== -1) {
+                    allTiles[tileIndex] = newTile;
+                  }
+                }
               }
             }
           }
           
           // 更新tiles数组，保持顺序，并且按照面子类型排序
+          // 先保存原始完整面子
+          const intactMeldContents = intactMelds.map(idx => originalMelds[idx]);
+          
+          // 对面子进行排序
           allMelds.sort(compareMelds);
+          
+          // 排序后，重新确定哪些是完整面子
+          const newIntactMelds: number[] = [];
+          
+          // 遍历排序后的面子
+          for (let i = 0; i < allMelds.length; i++) {
+            // 遍历原始完整面子内容
+            for (const origMeld of intactMeldContents) {
+              // 检查当前面子是否与原始完整面子匹配
+              if (areArraysEqual(allMelds[i], origMeld)) {
+                newIntactMelds.push(i);
+                break;
+              }
+            }
+          }
+          
+          intactMelds = newIntactMelds;
+          
+          // 更新全部牌的数组
           allTiles = [];
           for (const meld of allMelds) {
             allTiles = [...allTiles, ...meld];
@@ -542,6 +772,7 @@ export const generateWinningHand = (): WinningHandResult => {
           tiles: [...allTiles, ...pair],
           melds: allMelds,
           pair: pair,
+          intactMelds: intactMelds,
           description: "练习牌型 - 有两组面子被打乱"
         };
       }
@@ -553,155 +784,6 @@ export const generateWinningHand = (): WinningHandResult => {
   const result = patterns[patternIndex].generator();
   
   return result;
-};
-
-// 生成一个面子，考虑花色的限制和对子的花色
-const generateMeldWithTypeLimit = (
-  usedTiles: Map<string, number>, 
-  meldTypeCount: {[key: string]: number},
-  pairFlowerType: string | null = null
-): string[] => {
-  // 检查哪些花色未达到限制
-  const availableTypes = [];
-  
-  // 对子所在花色的面子限制为1个，其他花色限制为2个
-  if (meldTypeCount.characters < (pairFlowerType === 'characters' ? 1 : 2)) 
-    availableTypes.push('characters');
-  if (meldTypeCount.bamboo < (pairFlowerType === 'bamboo' ? 1 : 2)) 
-    availableTypes.push('bamboo');
-  if (meldTypeCount.circles < (pairFlowerType === 'circles' ? 1 : 2)) 
-    availableTypes.push('circles');
-  if (meldTypeCount.honors < (pairFlowerType === 'honors' ? 1 : 2)) 
-    availableTypes.push('honors');
-  
-  // 如果所有花色都已达到限制，则允许任何花色
-  const forceType = availableTypes.length > 0 ? 
-    availableTypes[Math.floor(Math.random() * availableTypes.length)] : 
-    null;
-    
-  // 决定是否生成顺子
-  const isSequential = Math.random() > 0.5;
-  
-  // 如果是强制字牌类型，则不能生成顺子
-  const shouldGenerateSequence = isSequential && forceType !== 'honors';
-  
-  if (shouldGenerateSequence) {
-    // 生成顺子（三张连续的牌）
-    // 如果指定了花色，则使用该花色
-    const types = forceType && forceType !== 'honors' ? 
-      [forceType as 'characters' | 'bamboo' | 'circles'] : 
-      ['characters', 'bamboo', 'circles'] as const;
-    
-    // 尝试最多10次找到可以形成顺子的起始牌
-    for (let attempt = 0; attempt < 10; attempt++) {
-      const type = types[Math.floor(Math.random() * types.length)];
-      // 确保可以形成顺子（最大索引为6，因为需要连续3张牌）
-      const startIndex = Math.floor(Math.random() * 7);
-      
-      const tile1 = allTiles[type][startIndex];
-      const tile2 = allTiles[type][startIndex + 1];
-      const tile3 = allTiles[type][startIndex + 2];
-      
-      const count1 = usedTiles.get(tile1) || 0;
-      const count2 = usedTiles.get(tile2) || 0;
-      const count3 = usedTiles.get(tile3) || 0;
-      
-      // 检查是否所有牌都未达到4张的限制
-      if (count1 < 4 && count2 < 4 && count3 < 4) {
-        // 更新使用计数
-        updateUsedTiles(usedTiles, tile1);
-        updateUsedTiles(usedTiles, tile2);
-        updateUsedTiles(usedTiles, tile3);
-        
-        return [tile1, tile2, tile3];
-      }
-    }
-    
-    // 如果无法找到合适的顺子，退化为生成刻子
-    return generateMeldWithTypeLimit(usedTiles, meldTypeCount);
-  } else {
-    // 生成刻子（三张相同的牌）
-    // 尝试最多10次找到可以形成刻子的牌
-    for (let attempt = 0; attempt < 10; attempt++) {
-      // 根据指定的花色生成牌
-      let tile;
-      if (forceType === 'honors') {
-        tile = getRandomHonorTile(usedTiles);
-      } else if (forceType && forceType !== 'honors') {
-        // 从指定的数字牌花色中选择
-        const type = forceType as 'characters' | 'bamboo' | 'circles';
-        const index = Math.floor(Math.random() * 9);
-        tile = allTiles[type][index];
-        
-        // 检查是否已使用4张
-        if ((usedTiles.get(tile) || 0) >= 4) {
-          // 尝试其他索引
-          continue;
-        }
-      } else {
-        tile = getRandomTile(usedTiles);
-      }
-      
-      const count = usedTiles.get(tile) || 0;
-      
-      // 检查是否这种牌加上要生成的3张后不会超过4张
-      if (count + 3 <= 4) {
-        // 更新使用计数
-        updateUsedTiles(usedTiles, tile);
-        updateUsedTiles(usedTiles, tile);
-        updateUsedTiles(usedTiles, tile);
-        
-        return [tile, tile, tile];
-      }
-    }
-    
-    // 如果无法找到合适的刻子，尝试生成替代方案
-    // 找一个剩余数量足够的牌
-    const result: string[] = [];
-    
-    if (forceType) {
-      // 如果指定了花色，尝试从该花色找牌
-      let availableTiles: string[] = [];
-      
-      if (forceType === 'honors') {
-        availableTiles = [...allTiles.winds, ...allTiles.dragons];
-      } else {
-        availableTiles = allTiles[forceType as 'characters' | 'bamboo' | 'circles'];
-      }
-      
-      // 找出使用次数最少的牌
-      let bestTile = '';
-      let minUsed = 5;
-      
-      for (const tile of availableTiles) {
-        const count = usedTiles.get(tile) || 0;
-        if (count < minUsed) {
-          minUsed = count;
-          bestTile = tile;
-        }
-      }
-      
-      // 尽可能使用这个牌
-      if (bestTile) {
-        const count = usedTiles.get(bestTile) || 0;
-        const canUse = Math.min(3, 4 - count);
-        
-        for (let i = 0; i < canUse; i++) {
-          result.push(bestTile);
-          updateUsedTiles(usedTiles, bestTile);
-        }
-      }
-    }
-    
-    // 如果不足3张，用其他牌补充
-    while (result.length < 3) {
-      const tile = getRandomTile(usedTiles);
-      result.push(tile);
-      updateUsedTiles(usedTiles, tile);
-    }
-    
-    return result;
-  }
 };
 
 // 排序函数（按照万子、条子、筒子、风牌、箭牌的顺序）
@@ -718,4 +800,13 @@ export const sortTiles = (tiles: string[]) => {
   });
   
   return [...tiles].sort((a, b) => tileOrder[a] - tileOrder[b]);
-}; 
+};
+
+// 帮助函数：比较两个数组是否包含相同元素（顺序也要相同）
+function areArraysEqual(arr1: string[], arr2: string[]): boolean {
+  if (arr1.length !== arr2.length) return false;
+  for (let i = 0; i < arr1.length; i++) {
+    if (arr1[i] !== arr2[i]) return false;
+  }
+  return true;
+} 

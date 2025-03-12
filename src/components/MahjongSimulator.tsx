@@ -11,11 +11,12 @@ const MahjongSimulator: React.FC = () => {
   const navigate = useNavigate();
   const [melds, setMelds] = useState<string[][]>([]); // 保存面子信息
   const [pair, setPair] = useState<string[]>([]); // 保存对子信息
+  const [intactMelds, setIntactMelds] = useState<number[]>([]); // 保存未被破坏的面子索引
   const [selectedTileIndex, setSelectedTileIndex] = useState<number | null>(null);
   const [discardInfo, setDiscardInfo] = useState<{
     tile: string, 
     message: string, 
-    validDraws?: string[]
+    validDraws?: Array<{tile: string, remaining: number}>
   } | null>(null);
 
   // 按类型和面子分组显示麻将牌
@@ -78,8 +79,16 @@ const MahjongSimulator: React.FC = () => {
     const result = generateWinningHand();
     setMelds(result.melds);
     setPair(result.pair);
+    setIntactMelds(result.intactMelds); // 保存未被破坏的面子索引
     setSelectedTileIndex(null); // 重置选中状态
     setDiscardInfo(null); // 重置打出牌信息
+    
+    // 添加更详细的调试信息
+    console.log("完整结果: ", result);
+    console.log("所有面子: ", result.melds);
+    console.log("完整面子索引: ", result.intactMelds);
+    console.log("完整面子内容: ", result.intactMelds.map(idx => result.melds[idx]));
+    console.log("对子: ", result.pair);
   };
 
   // 将emoji表示的麻将牌转换为数字索引(0-33)
@@ -157,7 +166,7 @@ const MahjongSimulator: React.FC = () => {
   };
 
   // 计算有效进张
-  const findValidDraws = (handTiles: string[]): string[] => {
+  const findValidDraws = (handTiles: string[]): Array<{tile: string, remaining: number}> => {
     // 转换为数字索引
     const hand = handTiles.map(tile => tileToIndex(tile));
     
@@ -165,7 +174,14 @@ const MahjongSimulator: React.FC = () => {
     const counts = buildCounts(hand);
     const baseMelds = getMaxMelds(counts);
     
-    const validDraws: string[] = [];
+    const validDraws: Array<{tile: string, remaining: number}> = [];
+    
+    // 计算手牌中每种牌的使用数量
+    const tileUsage = new Map<string, number>();
+    for (const tile of handTiles) {
+      const count = tileUsage.get(tile) || 0;
+      tileUsage.set(tile, count + 1);
+    }
     
     // 遍历所有34张牌
     for (let tileIndex = 0; tileIndex < 34; tileIndex++) {
@@ -180,7 +196,15 @@ const MahjongSimulator: React.FC = () => {
       
       // 如果面子数增加1个，则视为有效进张
       if (newMelds === baseMelds + 1) {
-        validDraws.push(indexToTile(tileIndex));
+        const tile = indexToTile(tileIndex);
+        // 计算牌库中剩余的数量 (一种牌最多4张)
+        const used = tileUsage.get(tile) || 0;
+        const remaining = 4 - used;
+        
+        validDraws.push({
+          tile, 
+          remaining
+        });
       }
       
       // 恢复计数
@@ -190,7 +214,27 @@ const MahjongSimulator: React.FC = () => {
     return validDraws;
   };
 
-  // 处理牌的点击事件 - 更新后的版本
+  // 检查牌是否在未被破坏的面子或对子中 - 改进逻辑
+  const isInIntactTiles = (tile: string) => {
+    // 检查是否在对子中
+    if (pair.includes(tile)) {
+      console.log(`牌 ${tile} 在对子中`);
+      return true;
+    }
+    
+    // 检查是否在未被破坏的面子中
+    for (const meldIndex of intactMelds) {
+      if (melds[meldIndex] && melds[meldIndex].includes(tile)) {
+        console.log(`牌 ${tile} 在完整面子 ${meldIndex} 中: ${melds[meldIndex]}`);
+        return true;
+      }
+    }
+    
+    console.log(`牌 ${tile} 不在任何完整牌组中`);
+    return false;
+  };
+
+  // 处理牌的点击事件 - 修改以检查牌是否在完整的面子中
   const handleTileClick = (index: number) => {
     if (index === selectedTileIndex) {
       setSelectedTileIndex(null);
@@ -218,6 +262,16 @@ const MahjongSimulator: React.FC = () => {
     
     // 获取点击的牌
     const clickedTile = indexToTileMap[index];
+    
+    // 检查牌是否在未被破坏的面子或对子中
+    if (isInIntactTiles(clickedTile)) {
+      setDiscardInfo({
+        tile: clickedTile,
+        message: `无效打牌：不能打出完整面子或对子中的牌`,
+        validDraws: []
+      });
+      return;
+    }
     
     // 收集所有手牌
     const allHandTiles: string[] = [];
@@ -307,9 +361,14 @@ const MahjongSimulator: React.FC = () => {
           <p>{discardInfo.message}</p>
           {discardInfo.validDraws && discardInfo.validDraws.length > 0 && (
             <div className="valid-draws">
-              {discardInfo.validDraws.map((tile, idx) => (
-                <div key={`draw-${idx}`} className="simulator-tile">
-                  {tile}
+              {discardInfo.validDraws.map((drawInfo, idx) => (
+                <div key={`draw-${idx}`} className="draw-tile-container">
+                  <div className="simulator-tile">
+                    {drawInfo.tile}
+                  </div>
+                  <div className="remaining-count">
+                    {drawInfo.remaining}
+                  </div>
                 </div>
               ))}
             </div>
