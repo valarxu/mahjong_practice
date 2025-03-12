@@ -82,13 +82,6 @@ const MahjongSimulator: React.FC = () => {
     setIntactMelds(result.intactMelds); // 保存未被破坏的面子索引
     setSelectedTileIndex(null); // 重置选中状态
     setDiscardInfo(null); // 重置打出牌信息
-    
-    // 添加更详细的调试信息
-    console.log("完整结果: ", result);
-    console.log("所有面子: ", result.melds);
-    console.log("完整面子索引: ", result.intactMelds);
-    console.log("完整面子内容: ", result.intactMelds.map(idx => result.melds[idx]));
-    console.log("对子: ", result.pair);
   };
 
   // 将emoji表示的麻将牌转换为数字索引(0-33)
@@ -218,19 +211,16 @@ const MahjongSimulator: React.FC = () => {
   const isInIntactTiles = (tile: string) => {
     // 检查是否在对子中
     if (pair.includes(tile)) {
-      console.log(`牌 ${tile} 在对子中`);
       return true;
     }
     
     // 检查是否在未被破坏的面子中
     for (const meldIndex of intactMelds) {
       if (melds[meldIndex] && melds[meldIndex].includes(tile)) {
-        console.log(`牌 ${tile} 在完整面子 ${meldIndex} 中: ${melds[meldIndex]}`);
         return true;
       }
     }
     
-    console.log(`牌 ${tile} 不在任何完整牌组中`);
     return false;
   };
 
