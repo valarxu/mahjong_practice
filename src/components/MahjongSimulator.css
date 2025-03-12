@@ -149,4 +149,49 @@
 /* 同一组内的牌之间距离更近 */
 .tile-group .simulator-tile {
   margin: 0 1px;
+}
+
+/* 进张信息区域样式 */
+.discard-info {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  width: 100%;
+  max-width: 1000px;
+}
+
+/* 有效进张区域样式 - 确保横向排列 */
+.valid-draws {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 15px;
+}
+
+/* 无进张提示样式 */
+.no-draws {
+  color: #ff4d4d;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 10px;
+  font-size: 1.2rem;
+}
+
+/* 优化进张区域中麻将牌的大小 */
+.valid-draws .simulator-tile {
+  font-size: 3.5rem;
+  width: 50px;
+  height: 80px;
+  margin: 0 2px;
+}
+
+/* 进张信息文本样式 */
+.discard-info p {
+  text-align: center;
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+  color: #e0e0e0;
 } 
