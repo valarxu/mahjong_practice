@@ -6,9 +6,11 @@ import {
   allTiles,
   getTileTypeCategory
 } from '../utils/mahjongUtils';
+import { useDeviceDetect } from '../hooks/useDeviceDetect';
 
 const MahjongSimulator: React.FC = () => {
   const navigate = useNavigate();
+  const { isMobile } = useDeviceDetect();
   const [melds, setMelds] = useState<string[][]>([]); // 保存面子信息
   const [pair, setPair] = useState<string[]>([]); // 保存对子信息
   const [intactMelds, setIntactMelds] = useState<number[]>([]); // 保存未被破坏的面子索引
@@ -306,7 +308,7 @@ const MahjongSimulator: React.FC = () => {
   let globalIndex = 0;
 
   return (
-    <div className="mahjong-simulator">
+    <div className={`mahjong-simulator ${isMobile ? 'mobile-view' : ''}`}>
       <h1>听牌练习模拟器</h1>
       
       <div className="buttons-container">

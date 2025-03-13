@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './MahjongTiles.css';
+import { useDeviceDetect } from '../hooks/useDeviceDetect';
 
 const MahjongTiles: React.FC = () => {
   const navigate = useNavigate();
+  const { isMobile } = useDeviceDetect();
   // 麻将牌的emoji
   const tiles = {
     // 万子
@@ -25,7 +27,7 @@ const MahjongTiles: React.FC = () => {
   };
 
   return (
-    <div className="mahjong-container">
+    <div className={`mahjong-container ${isMobile ? 'mobile-view' : ''}`}>
       <div className="button-container">
         <button className="navigate-button" onClick={handleButtonClick}>
           听牌练习

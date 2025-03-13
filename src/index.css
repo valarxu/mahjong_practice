@@ -79,3 +79,30 @@ button:focus-visible {
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* 添加媒体查询优化移动端布局 */
+@media (max-width: 480px) {
+  :root {
+    font-size: 14px;
+  }
+  
+  body {
+    min-width: unset;
+  }
+  
+  h1 {
+    font-size: 1.8em;
+  }
+  
+  button {
+    padding: 0.5em 1em;
+  }
+}
+
+/* 优化触摸交互 */
+@media (pointer: coarse) {
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

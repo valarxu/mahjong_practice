@@ -7,9 +7,18 @@
   min-height: 70vh;
 }
 
+.mahjong-simulator.mobile-view {
+  padding: 1rem 0.5rem;
+}
+
 .mahjong-simulator h1 {
   margin-bottom: 2rem;
   color: #e0e0e0;
+}
+
+.mahjong-simulator.mobile-view h1 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .tiles-container {
@@ -78,6 +87,40 @@
 
 .simulator-button:hover, .back-button:hover {
   background-color: #333;
+}
+
+/* 更改移动端麻将牌的大小和布局 */
+.mobile-view .simulator-tile {
+  font-size: 3rem;
+  width: 50px;
+  height: 75px;
+}
+
+.mobile-view .valid-draws .simulator-tile {
+  font-size: 2.5rem;
+  width: 40px;
+  height: 60px;
+}
+
+.mobile-view .buttons-container {
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  align-items: center;
+}
+
+.mobile-view .buttons-container button {
+  width: 80%;
+  margin: 0;
+}
+
+/* 修改移动端面子组间距 */
+.mobile-view .meld-group {
+  margin-right: 5px;
+}
+
+.mobile-view .pair-group {
+  margin-left: 5px;
 }
 
 @media (max-width: 768px) {
