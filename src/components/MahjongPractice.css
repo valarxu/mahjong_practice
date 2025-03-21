@@ -385,6 +385,34 @@ h2 {
   background-color: #9E9E9E;
 }
 
+/* 搭子相关样式 */
+.tile-group.twoSided {
+  background-color: rgba(121, 85, 72, 0.1);
+  border: 1px solid rgba(121, 85, 72, 0.3);
+}
+
+.tile-group.twoSided .group-type {
+  background-color: #795548;
+}
+
+.tile-group.closed {
+  background-color: rgba(233, 30, 99, 0.1);
+  border: 1px solid rgba(233, 30, 99, 0.3);
+}
+
+.tile-group.closed .group-type {
+  background-color: #E91E63;
+}
+
+.tile-group.edge {
+  background-color: rgba(103, 58, 183, 0.1);
+  border: 1px solid rgba(103, 58, 183, 0.3);
+}
+
+.tile-group.edge .group-type {
+  background-color: #673AB7;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .analysis-groups {

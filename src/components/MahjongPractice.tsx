@@ -12,7 +12,7 @@ interface Tile {
 
 // 分析结果中的组定义
 interface TileGroup {
-  type: 'pung' | 'chow' | 'pair' | 'single';
+  type: 'pung' | 'chow' | 'pair' | 'single' | 'twoSided' | 'closed' | 'edge';
   tiles: number[]; // 使用数字编码
 }
 
@@ -433,6 +433,7 @@ const MahjongPractice: React.FC = () => {
     // 三张相同的牌（刻子）：3分
     // 顺子：2分
     // 对子：1分
+    // 搭子(两面、嵌张、边张)：0.5分
     // 单张：0分
     
     // 定义组合对象
@@ -495,6 +496,66 @@ const MahjongPractice: React.FC = () => {
       }
     }
     
+    // 寻找搭子
+    // 只能在万、条、筒中形成搭子
+    for (let suit = 0; suit < 3; suit++) {
+      const base = suit * 9;
+      
+      // 1. 寻找两面搭子（如5,6等待4,7）
+      for (let i = 0; i < 8; i++) {
+        // 跳过边张位置，边张搭子需要单独处理
+        if (i === 0 || i === 7) continue;
+        
+        if (tileCounts[base + i] > 0 && tileCounts[base + i + 1] > 0) {
+          // 形成两面搭子
+          result.groups.push({
+            type: 'twoSided',
+            tiles: [base + i, base + i + 1]
+          });
+          tileCounts[base + i]--;
+          tileCounts[base + i + 1]--;
+          result.used += 2;
+        }
+      }
+      
+      // 2. 寻找嵌张搭子（如3,5等待4）
+      for (let i = 0; i < 7; i++) {
+        if (tileCounts[base + i] > 0 && tileCounts[base + i + 2] > 0) {
+          // 形成嵌张搭子
+          result.groups.push({
+            type: 'closed',
+            tiles: [base + i, base + i + 2]
+          });
+          tileCounts[base + i]--;
+          tileCounts[base + i + 2]--;
+          result.used += 2;
+        }
+      }
+      
+      // 3. 寻找边张搭子（如1,2等待3或8,9等待7）
+      // 一万二万搭子
+      if (tileCounts[base] > 0 && tileCounts[base + 1] > 0) {
+        result.groups.push({
+          type: 'edge',
+          tiles: [base, base + 1]
+        });
+        tileCounts[base]--;
+        tileCounts[base + 1]--;
+        result.used += 2;
+      }
+      
+      // 八万九万搭子
+      if (tileCounts[base + 7] > 0 && tileCounts[base + 8] > 0) {
+        result.groups.push({
+          type: 'edge',
+          tiles: [base + 7, base + 8]
+        });
+        tileCounts[base + 7]--;
+        tileCounts[base + 8]--;
+        result.used += 2;
+      }
+    }
+    
     // 处理单张牌
     for (let i = 0; i < tileCounts.length; i++) {
       while (tileCounts[i] > 0) {
@@ -512,17 +573,7 @@ const MahjongPractice: React.FC = () => {
     return result;
   };
 
-  // 辅助函数：获取组类型的中文名称
-  const getGroupTypeName = (type: string): string => {
-    switch (type) {
-      case 'pung': return '刻子';
-      case 'chow': return '顺子';
-      case 'pair': return '对子';
-      default: return '单张';
-    }
-  };
-
-  // 渲染分析结果的函数 - 修改为横向展示
+  // 渲染分析结果的函数 - 修改以包含搭子类型
   const renderAnalysisResult = () => {
     if (!analysisResult) return null;
     
@@ -530,6 +581,9 @@ const MahjongPractice: React.FC = () => {
     const pungGroups = analysisResult.groups.filter(g => g.type === 'pung');
     const chowGroups = analysisResult.groups.filter(g => g.type === 'chow');
     const pairGroups = analysisResult.groups.filter(g => g.type === 'pair');
+    const twoSidedGroups = analysisResult.groups.filter(g => g.type === 'twoSided');
+    const closedGroups = analysisResult.groups.filter(g => g.type === 'closed');
+    const edgeGroups = analysisResult.groups.filter(g => g.type === 'edge');
     const singleGroups = analysisResult.groups.filter(g => g.type === 'single');
     
     return (
@@ -586,6 +640,66 @@ const MahjongPractice: React.FC = () => {
                   <div className="group-tiles">
                     {group.tiles.map((tileCode, tileIndex) => (
                       <div key={`pair-tile-${index}-${tileIndex}`} className="analysis-tile">
+                        {getTileUnicode(tileCode)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* 横向展示两面搭子 */}
+        {twoSidedGroups.length > 0 && (
+          <div className="analysis-row">
+            <div className="row-label">两面搭子</div>
+            <div className="analysis-groups">
+              {twoSidedGroups.map((group, index) => (
+                <div key={`twoSided-${index}`} className="tile-group twoSided">
+                  <div className="group-tiles">
+                    {group.tiles.map((tileCode, tileIndex) => (
+                      <div key={`twoSided-tile-${index}-${tileIndex}`} className="analysis-tile">
+                        {getTileUnicode(tileCode)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* 横向展示嵌张搭子 */}
+        {closedGroups.length > 0 && (
+          <div className="analysis-row">
+            <div className="row-label">嵌张搭子</div>
+            <div className="analysis-groups">
+              {closedGroups.map((group, index) => (
+                <div key={`closed-${index}`} className="tile-group closed">
+                  <div className="group-tiles">
+                    {group.tiles.map((tileCode, tileIndex) => (
+                      <div key={`closed-tile-${index}-${tileIndex}`} className="analysis-tile">
+                        {getTileUnicode(tileCode)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* 横向展示边张搭子 */}
+        {edgeGroups.length > 0 && (
+          <div className="analysis-row">
+            <div className="row-label">边张搭子</div>
+            <div className="analysis-groups">
+              {edgeGroups.map((group, index) => (
+                <div key={`edge-${index}`} className="tile-group edge">
+                  <div className="group-tiles">
+                    {group.tiles.map((tileCode, tileIndex) => (
+                      <div key={`edge-tile-${index}-${tileIndex}`} className="analysis-tile">
                         {getTileUnicode(tileCode)}
                       </div>
                     ))}
