@@ -26,14 +26,21 @@ const MahjongTiles: React.FC = () => {
     navigate('/mahjong-simulator');
   };
 
+  const handleButtonClick2 = () => {
+    navigate('/mahjong-practice');
+  };
+
   return (
     <div className={`mahjong-container ${isMobile ? 'mobile-view' : ''}`}>
       <div className="button-container">
         <button className="navigate-button" onClick={handleButtonClick}>
           听牌练习
         </button>
+        <button className="navigate-button" onClick={handleButtonClick2}>
+          打牌练习
+        </button>
       </div>
-      
+
       <div className="tile-section">
         <h3>万子</h3>
         <div className="tile-row">
