@@ -270,4 +270,170 @@ h2 {
   100% {
     box-shadow: 0 0 0 0 rgba(168, 50, 50, 0);
   }
+}
+
+/* 分析结果样式 - 横向展示 */
+.analysis-result-container {
+  margin-bottom: 30px;
+  padding: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.analysis-result h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 1rem;
+  color: #e0e0e0;
+  text-align: center;
+}
+
+/* 修改为横向排列 */
+.analysis-groups {
+  display: flex;
+  flex-direction: row; /* 横向排列 */
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.tile-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  padding: 25px 10px 10px 10px;
+  position: relative;
+  margin-bottom: 5px;
+}
+
+.group-type {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #243329;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  color: white;
+}
+
+/* 组内牌的横向排列 */
+.group-tiles {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+}
+
+.analysis-tile {
+  font-size: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 45px;
+  height: 65px;
+  background: none;
+  margin: 0 2px;
+}
+
+.tile-group.pung {
+  background-color: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.tile-group.pung .group-type {
+  background-color: #4CAF50;
+}
+
+.tile-group.chow {
+  background-color: rgba(33, 150, 243, 0.1);
+  border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.tile-group.chow .group-type {
+  background-color: #2196F3;
+}
+
+.tile-group.pair {
+  background-color: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.tile-group.pair .group-type {
+  background-color: #FFC107;
+}
+
+.tile-group.single {
+  background-color: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.tile-group.single .group-type {
+  background-color: #F44336;
+}
+
+.tile-group.remaining {
+  background-color: rgba(158, 158, 158, 0.1);
+  border: 1px solid rgba(158, 158, 158, 0.3);
+}
+
+.tile-group.remaining .group-type {
+  background-color: #9E9E9E;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .analysis-groups {
+    gap: 10px;
+  }
+  
+  .analysis-tile {
+    font-size: 3rem;
+    width: 40px;
+    height: 55px;
+  }
+}
+
+@media (max-width: 576px) {
+  .analysis-tile {
+    font-size: 2.5rem;
+    width: 35px;
+    height: 50px;
+  }
+}
+
+/* 添加行标签样式 */
+.analysis-row {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.row-label {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #e0e0e0;
+  margin-bottom: 5px;
+  padding: 2px 10px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+/* 调整每行牌的排列 */
+.analysis-row .analysis-groups {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* 移除原来的组标签，因为我们现在按行分组了 */
+.tile-group {
+  padding: 10px;
 } 
