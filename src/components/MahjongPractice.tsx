@@ -573,180 +573,74 @@ const MahjongPractice: React.FC = () => {
     return result;
   };
 
-  // 渲染分析结果的函数 - 修改以包含搭子类型
+  // 渲染分析结果的函数 - 优化排序和展示
   const renderAnalysisResult = () => {
     if (!analysisResult) return null;
     
-    // 按组类型分组
-    const pungGroups = analysisResult.groups.filter(g => g.type === 'pung');
-    const chowGroups = analysisResult.groups.filter(g => g.type === 'chow');
-    const pairGroups = analysisResult.groups.filter(g => g.type === 'pair');
-    const twoSidedGroups = analysisResult.groups.filter(g => g.type === 'twoSided');
-    const closedGroups = analysisResult.groups.filter(g => g.type === 'closed');
-    const edgeGroups = analysisResult.groups.filter(g => g.type === 'edge');
-    const singleGroups = analysisResult.groups.filter(g => g.type === 'single');
+    // 先提取所有牌，然后按照原始顺序排序
+    const allTilesWithInfo = analysisResult.groups.flatMap(group => {
+      return group.tiles.map(tileCode => ({
+        tileCode,
+        type: group.type,
+        groupTiles: group.tiles // 保存这张牌所属组的所有牌
+      }));
+    });
+    
+    // 按照牌的编码进行排序（万、条、筒、风、箭）
+    const sortedTiles = [...allTilesWithInfo].sort((a, b) => {
+      // 先按照牌的花色和点数排序
+      return a.tileCode - b.tileCode;
+    });
+    
+    // 重新组织牌，将同一组的牌放在一起
+    const organizedGroups: Array<{
+      type: 'pung' | 'chow' | 'pair' | 'single' | 'twoSided' | 'closed' | 'edge';
+      tiles: number[];
+      minCode: number; // 用于排序
+    }> = [];
+    
+    // 跟踪已处理的牌组
+    const processedGroups = new Set<string>();
+    
+    // 遍历排序后的牌
+    sortedTiles.forEach(tile => {
+      // 为每个牌组创建唯一标识
+      const groupId = `${tile.type}-${JSON.stringify(tile.groupTiles)}`;
+      
+      // 如果该牌组已处理，跳过
+      if (processedGroups.has(groupId)) return;
+      
+      // 标记为已处理
+      processedGroups.add(groupId);
+      
+      // 添加到组织好的牌组
+      organizedGroups.push({
+        type: tile.type,
+        tiles: tile.groupTiles,
+        minCode: Math.min(...tile.groupTiles) // 记录组内最小的牌码
+      });
+    });
+    
+    // 按照牌组内最小牌的编码排序
+    const finalGroups = organizedGroups.sort((a, b) => a.minCode - b.minCode);
     
     return (
       <div className="analysis-result">
         <h3>分析牌型结果 (已组合: {analysisResult.used}/{analysisResult.total}张)</h3>
         
-        {/* 横向展示刻子组 */}
-        {pungGroups.length > 0 && (
-          <div className="analysis-row">
-            <div className="row-label">刻子</div>
-            <div className="analysis-groups">
-              {pungGroups.map((group, index) => (
-                <div key={`pung-${index}`} className="tile-group pung">
-                  <div className="group-tiles">
-                    {group.tiles.map((tileCode, tileIndex) => (
-                      <div key={`pung-tile-${index}-${tileIndex}`} className="analysis-tile">
-                        {getTileUnicode(tileCode)}
-                      </div>
-                    ))}
+        <div className="analysis-all-groups">
+          {finalGroups.map((group, index) => (
+            <div key={`group-${index}`} className={`tile-group ${group.type}`}>
+              <div className="group-tiles">
+                {group.tiles.map((tileCode, tileIndex) => (
+                  <div key={`tile-${index}-${tileIndex}`} className="analysis-tile">
+                    {getTileUnicode(tileCode)}
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {/* 横向展示顺子组 */}
-        {chowGroups.length > 0 && (
-          <div className="analysis-row">
-            <div className="row-label">顺子</div>
-            <div className="analysis-groups">
-              {chowGroups.map((group, index) => (
-                <div key={`chow-${index}`} className="tile-group chow">
-                  <div className="group-tiles">
-                    {group.tiles.map((tileCode, tileIndex) => (
-                      <div key={`chow-tile-${index}-${tileIndex}`} className="analysis-tile">
-                        {getTileUnicode(tileCode)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {/* 横向展示对子组 */}
-        {pairGroups.length > 0 && (
-          <div className="analysis-row">
-            <div className="row-label">对子</div>
-            <div className="analysis-groups">
-              {pairGroups.map((group, index) => (
-                <div key={`pair-${index}`} className="tile-group pair">
-                  <div className="group-tiles">
-                    {group.tiles.map((tileCode, tileIndex) => (
-                      <div key={`pair-tile-${index}-${tileIndex}`} className="analysis-tile">
-                        {getTileUnicode(tileCode)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {/* 横向展示两面搭子 */}
-        {twoSidedGroups.length > 0 && (
-          <div className="analysis-row">
-            <div className="row-label">两面搭子</div>
-            <div className="analysis-groups">
-              {twoSidedGroups.map((group, index) => (
-                <div key={`twoSided-${index}`} className="tile-group twoSided">
-                  <div className="group-tiles">
-                    {group.tiles.map((tileCode, tileIndex) => (
-                      <div key={`twoSided-tile-${index}-${tileIndex}`} className="analysis-tile">
-                        {getTileUnicode(tileCode)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {/* 横向展示嵌张搭子 */}
-        {closedGroups.length > 0 && (
-          <div className="analysis-row">
-            <div className="row-label">嵌张搭子</div>
-            <div className="analysis-groups">
-              {closedGroups.map((group, index) => (
-                <div key={`closed-${index}`} className="tile-group closed">
-                  <div className="group-tiles">
-                    {group.tiles.map((tileCode, tileIndex) => (
-                      <div key={`closed-tile-${index}-${tileIndex}`} className="analysis-tile">
-                        {getTileUnicode(tileCode)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {/* 横向展示边张搭子 */}
-        {edgeGroups.length > 0 && (
-          <div className="analysis-row">
-            <div className="row-label">边张搭子</div>
-            <div className="analysis-groups">
-              {edgeGroups.map((group, index) => (
-                <div key={`edge-${index}`} className="tile-group edge">
-                  <div className="group-tiles">
-                    {group.tiles.map((tileCode, tileIndex) => (
-                      <div key={`edge-tile-${index}-${tileIndex}`} className="analysis-tile">
-                        {getTileUnicode(tileCode)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {/* 横向展示单张组 */}
-        {singleGroups.length > 0 && (
-          <div className="analysis-row">
-            <div className="row-label">单张</div>
-            <div className="analysis-groups">
-              {singleGroups.map((group, index) => (
-                <div key={`single-${index}`} className="tile-group single">
-                  <div className="group-tiles">
-                    {group.tiles.map((tileCode, tileIndex) => (
-                      <div key={`single-tile-${index}-${tileIndex}`} className="analysis-tile">
-                        {getTileUnicode(tileCode)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {/* 如果有剩余未分组的牌 */}
-        {analysisResult.remaining.length > 0 && (
-          <div className="analysis-row">
-            <div className="row-label">剩余牌</div>
-            <div className="analysis-groups">
-              <div className="tile-group remaining">
-                <div className="group-tiles">
-                  {analysisResult.remaining.map((tileCode, index) => (
-                    <div key={`remaining-tile-${index}`} className="analysis-tile">
-                      {getTileUnicode(tileCode)}
-                    </div>
-                  ))}
-                </div>
+                ))}
               </div>
             </div>
-          </div>
-        )}
+          ))}
+        </div>
       </div>
     );
   };
