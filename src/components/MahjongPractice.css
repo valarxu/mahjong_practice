@@ -1,6 +1,6 @@
 .mahjong-practice-container {
   padding: 20px;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -10,6 +10,7 @@
   min-height: 400px;
   background-color: #243329;
   border-radius: 0;
+  width: 100%;
 }
 
 .action-buttons {
@@ -34,11 +35,17 @@
   background-color: #333;
 }
 
+.action-button.disabled {
+  background-color: #555;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .player-tiles {
   margin-bottom: 30px;
 }
 
-.player-tiles h3 {
+.player-tiles h3, .discarded-tiles h3 {
   margin-top: 0;
   margin-bottom: 15px;
   font-size: 1rem;
@@ -48,9 +55,12 @@
 
 .tiles-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
-  gap: 2px;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  min-height: 130px; /* 确保预选牌上移后，下面的元素不会跳动 */
 }
 
 .tile {
@@ -58,7 +68,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 70px;
+  width: 60px;
   height: 120px;
   background: none;
   box-shadow: none;
@@ -67,10 +77,55 @@
   cursor: pointer;
   transition: transform 0.2s, filter 0.2s;
   position: relative;
+  flex-shrink: 0;
 }
 
-.tile:hover {
-  transform: translateY(-3px);
+/* 抓牌的样式 */
+.drawn-tile {
+  margin-left: 20px; /* 抓进来的牌与其他牌有一定间距 */
+  position: relative;
+}
+
+.drawn-tile::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  height: 100%;
+  width: 2px;
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 预选牌的样式 */
+.pre-selected {
+  transform: translateY(-20px) !important; /* 预选的牌上移20px */
+  filter: brightness(1.2); /* 亮度提高，更加明显 */
+}
+
+/* 牌河样式 */
+.discarded-tiles {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.discarded-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 5px;
+  min-height: auto;
+}
+
+.discarded-tile {
+  width: 50px;
+  height: 70px;
+  font-size: 3rem;
+  opacity: 0.8;
+  cursor: default;
+}
+
+.discarded-tile:hover {
+  transform: none;
 }
 
 h2 {
@@ -80,13 +135,46 @@ h2 {
   margin-bottom: 30px;
 }
 
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .mahjong-practice-container {
+    padding: 15px;
+  }
+  
+  .tile {
+    font-size: 4.5rem;
+    width: 55px;
+    height: 110px;
+  }
+  
+  .discarded-tile {
+    width: 45px;
+    height: 65px;
+    font-size: 2.8rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .tile {
+    font-size: 4rem;
+    width: 50px;
+    height: 100px;
+  }
+  
+  .discarded-tile {
+    width: 40px;
+    height: 60px;
+    font-size: 2.5rem;
+  }
+}
+
 @media (max-width: 768px) {
   .mahjong-practice-container {
     padding: 10px;
   }
   
   .practice-content {
-    padding: 10px;
+    padding: 15px 5px;
   }
   
   .action-button {
@@ -95,8 +183,37 @@ h2 {
   }
   
   .tile {
-    font-size: 24px;
+    font-size: 3.5rem;
+    width: 45px;
+    height: 90px;
+  }
+  
+  .discarded-tile {
+    width: 35px;
+    height: 55px;
+    font-size: 2.2rem;
+  }
+  
+  .drawn-tile {
+    margin-left: 15px;
+  }
+}
+
+@media (max-width: 576px) {
+  .tiles-row {
+    justify-content: flex-start;
+    padding-left: 10px;
+  }
+  
+  .tile {
+    font-size: 3rem;
+    width: 40px;
+    height: 80px;
+  }
+  
+  .discarded-tile {
     width: 30px;
-    height: 40px;
+    height: 45px;
+    font-size: 1.8rem;
   }
 } 
