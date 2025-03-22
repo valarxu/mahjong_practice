@@ -400,15 +400,12 @@ const MahjongPractice: React.FC = () => {
   const analyzeTiles = () => {
     // 提取手牌的编码
     const tileCodes = playerTiles.map(tile => tile.code);
-    console.log("tileCodes: ", tileCodes);
 
     // 准备一个纯数字数组，表示每种牌的数量
     const counts = new Array(34).fill(0); // 0-33，共34种牌
     tileCodes.forEach(code => {
       counts[code]++;
     });
-
-    console.log("counts: ", counts);
 
     // 调用分析函数
     const result = findBestCombination(counts, tileCodes);
