@@ -404,4 +404,116 @@ h2 {
   color: #e0e0e0;
   text-align: center;
   padding: 0 15px;
+}
+
+/* 进张分析容器样式 */
+.tiles-to-draw-container {
+  margin-bottom: 30px;
+  padding: 15px 0;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  background-color: rgba(255, 193, 7, 0.05);
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.tiles-to-draw-analysis h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 1rem;
+  color: #e0e0e0;
+  text-align: center;
+  padding: 0 15px;
+}
+
+.tiles-to-draw-groups {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 0 15px 15px;
+}
+
+.tiles-to-draw-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 10px;
+  min-width: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.tile-to-draw {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tile-to-draw .analysis-tile {
+  font-size: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 70px;
+  margin-bottom: 8px;
+}
+
+.tile-to-draw-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #e0e0e0;
+}
+
+.tile-count {
+  margin-bottom: 4px;
+}
+
+.tile-improvement {
+  color: #8BC34A;
+  font-weight: bold;
+}
+
+/* 响应式样式调整 */
+@media (max-width: 768px) {
+  .tiles-to-draw-groups {
+    gap: 10px;
+  }
+  
+  .tiles-to-draw-item {
+    min-width: 80px;
+    padding: 8px;
+  }
+  
+  .tile-to-draw .analysis-tile {
+    font-size: 3rem;
+    width: 40px;
+    height: 60px;
+  }
+  
+  .tile-to-draw-info {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .tiles-to-draw-groups {
+    gap: 5px;
+  }
+  
+  .tiles-to-draw-item {
+    min-width: 70px;
+    padding: 5px;
+  }
+  
+  .tile-to-draw .analysis-tile {
+    font-size: 2.5rem;
+    width: 35px;
+    height: 50px;
+  }
 } 
