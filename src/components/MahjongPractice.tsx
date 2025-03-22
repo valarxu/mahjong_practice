@@ -425,7 +425,7 @@ const MahjongPractice: React.FC = () => {
     // 对子：1分
     // 搭子(两面、嵌张、边张)：0.5分
     // 单张：0分
-
+    
     // 定义组合对象
     const result: AnalysisResult = {
       groups: [],
@@ -433,194 +433,213 @@ const MahjongPractice: React.FC = () => {
       used: 0,
       total: originalTiles.length
     };
-
+    
     // 复制计数数组，因为我们将修改它
     const tileCounts = [...counts];
-
-    // 首先尝试找出所有刻子（三张相同的牌）
-    for (let i = 0; i < tileCounts.length; i++) {
-      if (tileCounts[i] >= 3) {
-        // 形成刻子
-        result.groups.push({
-          type: 'pung',
-          tiles: [i, i, i]
-        });
-        tileCounts[i] -= 3;
-        result.used += 3;
-      }
-    }
-
-    // 然后寻找顺子（123, 456, 789）
-    // 只能在万、条、筒中形成顺子
-    for (let suit = 0; suit < 3; suit++) {
-      // 每种花色有9种数字
-      const base = suit * 9;
-
-      // 检查可能的顺子
-      for (let i = 0; i < 7; i++) {
-        // 顺子是连续的三张牌
-        while (tileCounts[base + i] > 0 && tileCounts[base + i + 1] > 0 && tileCounts[base + i + 2] > 0) {
-          // 形成顺子
-          result.groups.push({
-            type: 'chow',
-            tiles: [base + i, base + i + 1, base + i + 2]
+    
+    // 添加牌组的辅助函数
+    const addGroup = (type: 'pung' | 'chow' | 'pair' | 'single' | 'twoSided' | 'closed' | 'edge', tiles: number[]) => {
+      // 将牌组添加到结果中
+      result.groups.push({
+        type,
+        tiles: [...tiles]
+      });
+      
+      // 更新已使用的牌数
+      result.used += tiles.length;
+      
+      // 减少牌计数
+      tiles.forEach(tile => {
+        tileCounts[tile]--;
+      });
+    };
+    
+    // 尝试形成更优的组合（主要是优化顺子和对子的组合）
+    const tryOptimalCombination = () => {
+      // 临时计数数组，用于尝试不同组合
+      const tempCounts = [...tileCounts];
+      
+      // 储存最佳组合
+      const bestGroups: TileGroup[] = [];
+      let maxMeldCount = 0; // 最大面子数
+      let bestPairCount = 0; // 最佳对子数
+      
+      // 递归尝试不同组合
+      const tryFormCombination = (groups: TileGroup[], counts: number[], meldCount: number, pairCount: number) => {
+        // 评估当前组合
+        // 优先考虑完整面子（刻子和顺子）数量，然后考虑对子数量
+        if (meldCount > maxMeldCount || (meldCount === maxMeldCount && pairCount > bestPairCount)) {
+          maxMeldCount = meldCount;
+          bestPairCount = pairCount;
+          bestGroups.length = 0;
+          bestGroups.push(...groups);
+        }
+        
+        // 尝试形成刻子
+        for (let i = 0; i < counts.length; i++) {
+          if (counts[i] >= 3) {
+            counts[i] -= 3;
+            groups.push({ type: 'pung', tiles: [i, i, i] });
+            tryFormCombination(groups, counts, meldCount + 1, pairCount);
+            groups.pop();
+            counts[i] += 3;
+          }
+        }
+        
+        // 尝试形成顺子
+        for (let suit = 0; suit < 3; suit++) {
+          const base = suit * 9;
+          for (let i = 0; i < 7; i++) {
+            const start = base + i;
+            if (counts[start] > 0 && counts[start + 1] > 0 && counts[start + 2] > 0) {
+              counts[start]--;
+              counts[start + 1]--;
+              counts[start + 2]--;
+              groups.push({ type: 'chow', tiles: [start, start + 1, start + 2] });
+              tryFormCombination(groups, counts, meldCount + 1, pairCount);
+              groups.pop();
+              counts[start]++;
+              counts[start + 1]++;
+              counts[start + 2]++;
+            }
+          }
+        }
+        
+        // 尝试形成对子
+        for (let i = 0; i < counts.length; i++) {
+          if (counts[i] >= 2) {
+            counts[i] -= 2;
+            groups.push({ type: 'pair', tiles: [i, i] });
+            tryFormCombination(groups, counts, meldCount, pairCount + 1);
+            groups.pop();
+            counts[i] += 2;
+          }
+        }
+      };
+      
+      // 开始尝试组合
+      tryFormCombination([], tempCounts, 0, 0);
+      
+      // 应用最佳组合结果
+      if (bestGroups.length > 0) {
+        bestGroups.forEach(group => {
+          group.tiles.forEach(tile => {
+            tileCounts[tile]--;
           });
-          tileCounts[base + i]--;
-          tileCounts[base + i + 1]--;
-          tileCounts[base + i + 2]--;
-          result.used += 3;
+          result.groups.push(group);
+          result.used += group.tiles.length;
+        });
+        return true;
+      }
+      
+      return false;
+    };
+    
+    // 首先尝试找到最优组合（最多的顺子和刻子）
+    if (!tryOptimalCombination()) {
+      // 如果没有找到最优组合，使用原始算法
+      
+      // 首先处理刻子（三张相同的牌）
+      for (let i = 0; i < tileCounts.length; i++) {
+        while (tileCounts[i] >= 3) {
+          addGroup('pung', [i, i, i]);
+        }
+      }
+      
+      // 处理顺子
+      for (let suit = 0; suit < 3; suit++) {
+        const base = suit * 9;
+        // 特殊情况：优先处理多余的顺子，例如3万出现两次时
+        for (let i = 0; i < 7; i++) {
+          // 连续检查是否有可能形成顺子
+          while (tileCounts[base + i] > 0 && tileCounts[base + i + 1] > 0 && tileCounts[base + i + 2] > 0) {
+            addGroup('chow', [base + i, base + i + 1, base + i + 2]);
+          }
         }
       }
     }
-
-    // 寻找对子
+    
+    // 继续处理对子
     for (let i = 0; i < tileCounts.length; i++) {
       if (tileCounts[i] >= 2) {
-        // 形成对子
-        result.groups.push({
-          type: 'pair',
-          tiles: [i, i]
-        });
-        tileCounts[i] -= 2;
-        result.used += 2;
+        addGroup('pair', [i, i]);
       }
     }
-
-    // 寻找搭子
-    // 只能在万、条、筒中形成搭子
+    
+    // 处理搭子
     for (let suit = 0; suit < 3; suit++) {
       const base = suit * 9;
-
-      // 1. 寻找两面搭子（如5,6等待4,7）
-      for (let i = 0; i < 8; i++) {
-        // 跳过边张位置，边张搭子需要单独处理
-        if (i === 0 || i === 7) continue;
-
+      
+      // 1. 两面搭子
+      for (let i = 1; i < 7; i++) {
         if (tileCounts[base + i] > 0 && tileCounts[base + i + 1] > 0) {
-          // 形成两面搭子
-          result.groups.push({
-            type: 'twoSided',
-            tiles: [base + i, base + i + 1]
-          });
-          tileCounts[base + i]--;
-          tileCounts[base + i + 1]--;
-          result.used += 2;
+          addGroup('twoSided', [base + i, base + i + 1]);
         }
       }
-
-      // 2. 寻找嵌张搭子（如3,5等待4）
+      
+      // 2. 嵌张搭子
       for (let i = 0; i < 7; i++) {
         if (tileCounts[base + i] > 0 && tileCounts[base + i + 2] > 0) {
-          // 形成嵌张搭子
-          result.groups.push({
-            type: 'closed',
-            tiles: [base + i, base + i + 2]
-          });
-          tileCounts[base + i]--;
-          tileCounts[base + i + 2]--;
-          result.used += 2;
+          addGroup('closed', [base + i, base + i + 2]);
         }
       }
-
-      // 3. 寻找边张搭子（如1,2等待3或8,9等待7）
-      // 一万二万搭子
+      
+      // 3. 边张搭子
       if (tileCounts[base] > 0 && tileCounts[base + 1] > 0) {
-        result.groups.push({
-          type: 'edge',
-          tiles: [base, base + 1]
-        });
-        tileCounts[base]--;
-        tileCounts[base + 1]--;
-        result.used += 2;
+        addGroup('edge', [base, base + 1]);
       }
-
-      // 八万九万搭子
+      
       if (tileCounts[base + 7] > 0 && tileCounts[base + 8] > 0) {
-        result.groups.push({
-          type: 'edge',
-          tiles: [base + 7, base + 8]
-        });
-        tileCounts[base + 7]--;
-        tileCounts[base + 8]--;
-        result.used += 2;
+        addGroup('edge', [base + 7, base + 8]);
       }
     }
-
+    
     // 处理单张牌
     for (let i = 0; i < tileCounts.length; i++) {
       while (tileCounts[i] > 0) {
-        // 形成单张
-        result.groups.push({
-          type: 'single',
-          tiles: [i]
-        });
-        tileCounts[i]--;
-        result.used += 1;
+        addGroup('single', [i]);
       }
     }
-
-    // 返回分析结果
+    
     return result;
   };
 
-  // 渲染分析结果的函数 - 优化排序和展示
+  // 渲染分析结果的函数 - 修复相同牌组不显示问题
   const renderAnalysisResult = () => {
     if (!analysisResult) return null;
-
-    // 先提取所有牌，然后按照原始顺序排序
-    const allTilesWithInfo = analysisResult.groups.flatMap(group => {
-      return group.tiles.map(tileCode => ({
-        tileCode,
-        type: group.type,
-        groupTiles: group.tiles // 保存这张牌所属组的所有牌
-      }));
+    
+    // 按类型和最小牌码分组
+    const groupedResults: {[key: string]: TileGroup[]} = {};
+    
+    // 对每个牌组生成唯一键并分组
+    analysisResult.groups.forEach(group => {
+      // 为每个组创建一个键，包含类型和所有牌的代码
+      const minTile = Math.min(...group.tiles);
+      const key = `${minTile}-${group.type}`;
+      
+      if (!groupedResults[key]) {
+        groupedResults[key] = [];
+      }
+      
+      groupedResults[key].push(group);
     });
-
-    // 按照牌的编码进行排序（万、条、筒、风、箭）
-    const sortedTiles = [...allTilesWithInfo].sort((a, b) => {
-      // 先按照牌的花色和点数排序
-      return a.tileCode - b.tileCode;
+    
+    // 获取所有键并按牌的值排序
+    const sortedKeys = Object.keys(groupedResults).sort((a, b) => {
+      const [aMinTile] = a.split('-').map(Number);
+      const [bMinTile] = b.split('-').map(Number);
+      return aMinTile - bMinTile;
     });
-
-    // 重新组织牌，将同一组的牌放在一起
-    const organizedGroups: Array<{
-      type: 'pung' | 'chow' | 'pair' | 'single' | 'twoSided' | 'closed' | 'edge';
-      tiles: number[];
-      minCode: number; // 用于排序
-    }> = [];
-
-    // 跟踪已处理的牌组
-    const processedGroups = new Set<string>();
-
-    // 遍历排序后的牌
-    sortedTiles.forEach(tile => {
-      // 为每个牌组创建唯一标识
-      const groupId = `${tile.type}-${JSON.stringify(tile.groupTiles)}`;
-
-      // 如果该牌组已处理，跳过
-      if (processedGroups.has(groupId)) return;
-
-      // 标记为已处理
-      processedGroups.add(groupId);
-
-      // 添加到组织好的牌组
-      organizedGroups.push({
-        type: tile.type,
-        tiles: tile.groupTiles,
-        minCode: Math.min(...tile.groupTiles) // 记录组内最小的牌码
-      });
-    });
-
-    // 按照牌组内最小牌的编码排序
-    const finalGroups = organizedGroups.sort((a, b) => a.minCode - b.minCode);
-    console.log("finalGroups: ", finalGroups);
-
+    
+    // 最终排序的牌组
+    const sortedGroups = sortedKeys.flatMap(key => groupedResults[key]);
+    
     return (
       <div className="analysis-result">
         <h3>分析牌型结果 (已组合: {analysisResult.used}/{analysisResult.total}张)</h3>
-
+        
         <div className="analysis-all-groups">
-          {finalGroups.map((group, index) => (
+          {sortedGroups.map((group, index) => (
             <div key={`group-${index}`} className={`tile-group ${group.type}`}>
               <div className="group-tiles">
                 {group.tiles.map((tileCode, tileIndex) => (
