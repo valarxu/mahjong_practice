@@ -192,8 +192,15 @@ const MahjongPractice: React.FC = () => {
     // 进行进张分析
     const selectedTile = playerTiles.find(tile => tile.id === selectedTileId);
     if (selectedTile) {
-      const analysis = analyzeTilesToDraw(playerTiles, discardedTiles, doorTiles, selectedTile.code);
-      setTilesToDrawAnalysis(analysis);
+      const { tilesToDraw, badDiscard } = analyzeTilesToDraw(
+        playerTiles, 
+        discardedTiles, 
+        doorTiles, 
+        selectedTile.code
+      );
+      
+      // 无论是否是不良出牌，都显示进张分析区域
+      setTilesToDrawAnalysis(tilesToDraw);
       setShowTilesToDrawAnalysis(true);
     } else {
       setShowTilesToDrawAnalysis(false);
@@ -385,8 +392,47 @@ const MahjongPractice: React.FC = () => {
 
   // 渲染进张分析结果
   const renderTilesToDrawAnalysis = () => {
-    if (!showTilesToDrawAnalysis || tilesToDrawAnalysis.length === 0) {
+    if (!showTilesToDrawAnalysis) {
       return null;
+    }
+    
+    // 检查是否是不良出牌
+    const selectedTile = playerTiles.find(tile => tile.isPreSelected);
+    if (!selectedTile) return null;
+    
+    const { badDiscard } = analyzeTilesToDraw(
+      playerTiles, 
+      discardedTiles, 
+      doorTiles, 
+      selectedTile.code
+    );
+    
+    // 如果是不良出牌
+    if (badDiscard.isBad) {
+      return (
+        <div className="tiles-to-draw-analysis">
+          <h3 className="bad-discard-title">{badDiscard.reason}</h3>
+          <div className="tiles-to-draw-groups">
+            <div className="bad-discard-info">
+              打出这张牌会破坏已有的组合，建议重新选择
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // 正常进张分析显示
+    if (tilesToDrawAnalysis.length === 0) {
+      return (
+        <div className="tiles-to-draw-analysis">
+          <h3>进张分析</h3>
+          <div className="tiles-to-draw-groups">
+            <div className="no-improvement-info">
+              没有找到可改善牌型的进张
+            </div>
+          </div>
+        </div>
+      );
     }
     
     // 总进张数量

@@ -1,4 +1,5 @@
-import { Tile, TileToDrawItem } from '../types/mahjong';
+import { AnalysisResult, Tile, TileToDrawItem, TileGroup } from '../types/mahjong';
+import { findBestCombination } from './analyzer';
 
 // 计算手牌评分
 export const calculateHandScore = (tileCodes: number[]): number => {
@@ -76,13 +77,101 @@ export const calculateHandScore = (tileCodes: number[]): number => {
   return calculateBestScore(counts);
 };
 
+// 检查是否是不良出牌
+export const checkBadDiscard = (playerTiles: Tile[], selectedTileCode: number): { isBad: boolean; reason: string } => {
+  // 提取手牌编码
+  const tileCodes = playerTiles.map(tile => tile.code);
+  
+  // 计算每种牌的数量
+  const counts = new Array(34).fill(0);
+  tileCodes.forEach(code => {
+    counts[code]++;
+  });
+  
+  // 分析当前手牌
+  const currentAnalysis = findBestCombination(counts, tileCodes);
+  
+  // 1. 检查是否拆了顺子
+  const hasBreakChow = currentAnalysis.groups.some(group => {
+    if (group.type === 'chow') {
+      return group.tiles.includes(selectedTileCode);
+    }
+    return false;
+  });
+  
+  if (hasBreakChow) {
+    return { isBad: true, reason: '不良出牌：拆了顺子' };
+  }
+  
+  // 计算对子数量
+  const pairCount = currentAnalysis.groups.filter(group => group.type === 'pair').length;
+  
+  // 2. 检查是否在对子不为0的情况下拆了暗刻
+  const hasBreakPung = currentAnalysis.groups.some(group => {
+    if (group.type === 'pung' && pairCount > 0) {
+      return group.tiles.includes(selectedTileCode);
+    }
+    return false;
+  });
+  
+  if (hasBreakPung) {
+    return { isBad: true, reason: '不良出牌：拆了刻子' };
+  }
+  
+  // 3. 检查是否在对子为1的情况下拆了对子
+  if (pairCount === 1) {
+    const hasBreakPair = currentAnalysis.groups.some(group => {
+      if (group.type === 'pair') {
+        return group.tiles.includes(selectedTileCode);
+      }
+      return false;
+    });
+    
+    if (hasBreakPair) {
+      return { isBad: true, reason: '不良出牌：拆了唯一对子' };
+    }
+  }
+  
+  return { isBad: false, reason: '' };
+};
+
+// 评估牌型进度分数（朝着和牌的进度）
+export const evaluateHandProgress = (analysis: AnalysisResult): number => {
+  // 计算面子数 (顺子+刻子)
+  const meldCount = analysis.groups.filter(
+    group => group.type === 'chow' || group.type === 'pung'
+  ).length;
+  
+  // 计算对子数
+  const pairCount = analysis.groups.filter(group => group.type === 'pair').length;
+  
+  // 计算搭子数量（可能形成面子的部分）
+  const protoMeldCount = analysis.groups.filter(
+    group => group.type === 'twoSided' || group.type === 'closed' || group.type === 'edge'
+  ).length;
+  
+  // 计算单张数量
+  const singleCount = analysis.groups.filter(group => group.type === 'single').length;
+  
+  // 基础分数 = 面子*10 + 对子*5 + 搭子*2
+  // 每个单张扣1分
+  // 这样我们优先形成面子，其次是对子，再次是搭子，单张是负价值
+  return meldCount * 10 + Math.min(pairCount, 1) * 5 + protoMeldCount * 2 - singleCount;
+};
+
 // 分析打出特定牌后的进张
 export const analyzeTilesToDraw = (
   playerTiles: Tile[],
   discardedTiles: Tile[],
   doorTiles: Tile[],
   discardedTileCode: number
-): TileToDrawItem[] => {
+): { tilesToDraw: TileToDrawItem[], badDiscard: { isBad: boolean; reason: string } } => {
+  // 首先检查是否是不良出牌
+  const badDiscardCheck = checkBadDiscard(playerTiles, discardedTileCode);
+  if (badDiscardCheck.isBad) {
+    return { tilesToDraw: [], badDiscard: badDiscardCheck };
+  }
+  
   // 获取当前手牌编码
   const currentTileCodes = playerTiles.map(tile => tile.code);
   
@@ -93,8 +182,13 @@ export const analyzeTilesToDraw = (
     simulatedTiles.splice(discardIndex, 1);
   }
   
-  // 计算当前手牌评分
-  const currentHandScore = calculateHandScore(simulatedTiles);
+  // 分析当前牌型（打出牌后）
+  const counts = new Array(34).fill(0);
+  simulatedTiles.forEach(code => {
+    counts[code]++;
+  });
+  const currentAnalysis = findBestCombination(counts, simulatedTiles);
+  const currentProgress = evaluateHandProgress(currentAnalysis);
   
   // 统计未出现的牌数量
   const remainingTileCounts: { [key: number]: number } = {};
@@ -118,11 +212,19 @@ export const analyzeTilesToDraw = (
       // 模拟抓到这张牌
       const newHandTiles = [...simulatedTiles, tileCode];
       
-      // 计算新手牌的评分
-      const newHandScore = calculateHandScore(newHandTiles);
+      // 重新分析牌型
+      const newCounts = [...counts];
+      newCounts[tileCode]++;
+      const newAnalysis = findBestCombination(newCounts, newHandTiles);
+      const newProgress = evaluateHandProgress(newAnalysis);
       
-      // 计算改善程度
-      improvements[tileCode] = newHandScore - currentHandScore;
+      // 计算进步程度 - 正值表示向和牌进步
+      const progressImprovement = newProgress - currentProgress;
+      
+      // 只记录有进步的牌
+      if (progressImprovement > 0) {
+        improvements[tileCode] = progressImprovement;
+      }
     }
   }
   
@@ -133,8 +235,10 @@ export const analyzeTilesToDraw = (
       improvement,
       count: remainingTileCounts[parseInt(tile)]
     }))
-    .filter(item => item.improvement > 0)  // 只保留有正面改善的进张
     .sort((a, b) => a.tile - b.tile);  // 按照牌的编码顺序排序
   
-  return sortedImprovements;
+  return { 
+    tilesToDraw: sortedImprovements,
+    badDiscard: { isBad: false, reason: '' }
+  };
 }; 
