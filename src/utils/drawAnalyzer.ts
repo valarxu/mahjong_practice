@@ -1,4 +1,4 @@
-import { AnalysisResult, Tile, TileToDrawItem, TileGroup } from '../types/mahjong';
+import { AnalysisResult, Tile, TileToDrawItem } from '../types/mahjong';
 import { findBestCombination } from './analyzer';
 
 // 计算手牌评分

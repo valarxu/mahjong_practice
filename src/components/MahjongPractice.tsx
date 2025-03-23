@@ -192,7 +192,7 @@ const MahjongPractice: React.FC = () => {
     // 进行进张分析
     const selectedTile = playerTiles.find(tile => tile.id === selectedTileId);
     if (selectedTile) {
-      const { tilesToDraw, badDiscard } = analyzeTilesToDraw(
+      const { tilesToDraw } = analyzeTilesToDraw(
         playerTiles, 
         discardedTiles, 
         doorTiles, 
