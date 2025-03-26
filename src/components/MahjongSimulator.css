@@ -91,43 +91,73 @@
 
 /* 更改移动端麻将牌的大小和布局 */
 .mobile-view .simulator-tile {
-  font-size: 3rem;
-  width: 50px;
-  height: 75px;
+  font-size: 4rem;
+  width: 60px;
+  height: 90px;
+}
+
+.small-mobile-view .simulator-tile {
+  font-size: 3.5rem;
+  width: 55px;
+  height: 80px;
 }
 
 .mobile-view .valid-draws .simulator-tile {
-  font-size: 2.5rem;
-  width: 40px;
-  height: 60px;
+  font-size: 3rem;
+  width: 45px;
+  height: 70px;
+}
+
+.small-mobile-view .valid-draws .simulator-tile {
+  font-size: 2.8rem;
+  width: 42px;
+  height: 65px;
 }
 
 .mobile-view .buttons-container {
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 0.5rem;
   width: 100%;
-  align-items: center;
+  justify-content: center;
 }
 
 .mobile-view .buttons-container button {
-  width: 80%;
+  width: auto;
   margin: 0;
+  flex: 0 0 45%;
+}
+
+.small-mobile-view .buttons-container button {
+  width: auto;
+  margin: 0;
+  flex: 0 0 45%;
+  font-size: 0.9rem;
+  padding: 0.6rem 1rem;
 }
 
 /* 修改移动端面子组间距 */
 .mobile-view .meld-group {
-  margin-right: 5px;
+  margin-right: 8px;
 }
 
 .mobile-view .pair-group {
+  margin-left: 8px;
+}
+
+.small-mobile-view .meld-group {
+  margin-right: 5px;
+}
+
+.small-mobile-view .pair-group {
   margin-left: 5px;
 }
 
 @media (max-width: 768px) {
   .simulator-tile {
-    font-size: 5rem;
-    width: 100px;
-    height: 120px;
+    font-size: 4.5rem;
+    width: 65px;
+    height: 100px;
   }
   
   .simulator-tile:hover {
@@ -137,9 +167,25 @@
 
 @media (max-width: 480px) {
   .simulator-tile {
+    font-size: 4rem;
+    width: 60px;
+    height: 90px;
+  }
+  
+  .tile-type-row {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 400px) {
+  .simulator-tile {
     font-size: 3.5rem;
-    width: 70px;
-    height: 84px;
+    width: 55px;
+    height: 80px;
+  }
+  
+  .tile-type-row {
+    gap: 4px;
   }
 }
 
@@ -158,6 +204,17 @@
   font-style: italic;
 }
 
+/* 移动端优化描述文本 */
+.mobile-view .simulator-description {
+  font-size: 1rem;
+  margin-top: -0.5rem;
+}
+
+.mobile-view .pattern-description {
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
 /* 移除不需要的滚动条样式 */
 .tile-type-row::-webkit-scrollbar,
 .tile-type-row::-webkit-scrollbar-track,
@@ -172,6 +229,10 @@
   margin-right: auto;
   font-size: 0.9rem;
   padding-left: 8px;
+}
+
+.mobile-view .type-label {
+  font-size: 0.8rem;
 }
 
 /* 添加面子组和对子组的样式 */
@@ -194,6 +255,10 @@
   margin: 0 1px;
 }
 
+.mobile-view .tile-group .simulator-tile {
+  margin: 0;
+}
+
 /* 进张信息区域样式 */
 .discard-info {
   margin-top: 20px;
@@ -202,6 +267,11 @@
   border-radius: 8px;
   width: 100%;
   max-width: 1000px;
+}
+
+.mobile-view .discard-info {
+  margin-top: 15px;
+  padding: 10px;
 }
 
 /* 有效进张区域样式 - 确保横向排列 */
@@ -214,6 +284,10 @@
   margin-top: 15px;
 }
 
+.mobile-view .valid-draws {
+  gap: 3px;
+}
+
 /* 无进张提示样式 */
 .no-draws {
   color: #ff4d4d;
@@ -221,6 +295,10 @@
   text-align: center;
   margin-top: 10px;
   font-size: 1.2rem;
+}
+
+.mobile-view .no-draws {
+  font-size: 1rem;
 }
 
 /* 优化进张区域中麻将牌的大小 */
@@ -239,6 +317,11 @@
   color: #e0e0e0;
 }
 
+.mobile-view .discard-info p {
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
 /* 进张牌容器，包含牌和剩余数量 */
 .draw-tile-container {
   display: flex;
@@ -249,15 +332,7 @@
 
 /* 剩余牌数量样式 */
 .remaining-count {
-  font-size: 1rem;
-  font-weight: bold;
-  color: #ffcc00;
-  margin-top: -5px;
-  background-color: rgba(0, 0, 0, 0.6);
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 0.8rem;
+  color: #a0c8b0;
+  margin-top: 2px;
 } 

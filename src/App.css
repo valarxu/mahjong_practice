@@ -18,6 +18,10 @@
   padding: 0;
 }
 
+.app-container.small-mobile-view {
+  font-size: 0.9rem;
+}
+
 .app-header {
   background-color: #1a2923;
   color: white;
@@ -39,15 +43,31 @@
   font-size: 1.8rem;
 }
 
+.app-container.small-mobile-view .app-header h1 {
+  font-size: 1.5rem;
+}
+
 .app-header p {
   margin: 0.5rem 0 0;
   font-size: 1.1rem;
   opacity: 0.8;
 }
 
+.app-container.mobile-view .app-header p {
+  font-size: 0.9rem;
+}
+
 main {
   flex: 1;
   padding: 2rem 1rem;
+}
+
+.app-container.mobile-view main {
+  padding: 1rem 0.5rem;
+}
+
+.app-container.small-mobile-view main {
+  padding: 0.75rem 0.3rem;
 }
 
 footer {
@@ -99,6 +119,16 @@ footer p {
   color: #888;
 }
 
+@media (max-width: 400px) {
+  main {
+    padding: 0.75rem 0.3rem;
+  }
+  
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+}
+
 @media (max-width: 480px) {
   main {
     padding: 1rem 0.5rem;
@@ -106,5 +136,19 @@ footer p {
   
   .app-header h1 {
     font-size: 1.8rem;
+  }
+}
+
+/* 增强触摸交互 */
+@media (pointer: coarse) {
+  button {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 16px;
+  }
+  
+  /* 增加按钮间距，防止误触 */
+  .action-buttons {
+    gap: 12px;
   }
 }

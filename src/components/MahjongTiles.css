@@ -30,6 +30,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  justify-content: center;
 }
 
 .tile {
@@ -54,9 +55,21 @@
 
 @media (max-width: 600px) {
   .tile {
-    font-size: 2rem;
-    width: 40px;
-    height: 50px;
+    font-size: 2.5rem;
+    width: 45px;
+    height: 55px;
+  }
+  
+  .mahjong-container {
+    padding: 10px 5px;
+  }
+}
+
+@media (max-width: 400px) {
+  .tile {
+    font-size: 2.3rem;
+    width: 42px;
+    height: 52px;
   }
 }
 
@@ -90,13 +103,31 @@
 }
 
 .mobile-view .tile {
-  font-size: 2rem;
-  width: 35px;
-  height: 45px;
+  font-size: 2.8rem;
+  width: 45px;
+  height: 55px;
   padding: 3px;
+}
+
+.small-mobile-view .tile {
+  font-size: 2.5rem;
+  width: 42px;
+  height: 52px;
+  padding: 2px;
 }
 
 .mobile-view .navigate-button {
   padding: 0.6rem 1.2rem;
   font-size: 0.9rem;
+}
+
+/* 优化触摸交互 */
+@media (pointer: coarse) {
+  .tile {
+    margin: 5px;
+  }
+  
+  .tile-row {
+    gap: 8px;
+  }
 } 

@@ -6,11 +6,14 @@ import MahjongPractice from './components/MahjongPractice'
 import { useDeviceDetect } from './hooks/useDeviceDetect';
 
 function App() {
-  const { isMobile } = useDeviceDetect();
+  const { isMobile, isSmallMobile } = useDeviceDetect();
+  
+  // 组合设备类名
+  const deviceClass = `${isMobile ? 'mobile-view' : ''} ${isSmallMobile ? 'small-mobile-view' : ''}`;
 
   return (
     <BrowserRouter>
-      <div className={`app-container ${isMobile ? 'mobile-view' : ''}`}>
+      <div className={`app-container ${deviceClass}`}>
         <header className="app-header">
           <h1>麻将练习</h1>
         </header>
