@@ -7,11 +7,9 @@ import { AnalysisResult, Tile, TileToDrawItem, TileGroup } from '../types/mahjon
 
 // 导入工具函数
 import {
-  WHITE_DRAGON_CODE,
   allTiles,
   checkCanDraw,
   checkCanDiscard,
-  checkConcealedKong,
   getTileUnicode,
   shuffleTiles,
   sortTiles
@@ -24,11 +22,8 @@ import { analyzeTilesToDraw } from '../utils/drawAnalyzer';
 const MahjongPractice: React.FC = () => {
   const navigate = useNavigate();
   const [playerTiles, setPlayerTiles] = useState<Tile[]>([]); // 手牌
-  const [discardedTiles, setDiscardedTiles] = useState<Tile[]>([]); // 河里的牌
-  const [doorTiles, setDoorTiles] = useState<Tile[]>([]); // 门前的牌
   const [remainingTiles, setRemainingTiles] = useState<number[]>([]); // 剩余可抓的牌
   const [canDraw, setCanDraw] = useState<boolean>(true); // 是否可以抓牌
-  const [showConcealedKong, setShowConcealedKong] = useState<boolean>(false); // 是否显示暗杠按钮
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null); // 牌型分析结果
 
   // 新增状态变量，用于存储进张分析结果
@@ -38,37 +33,8 @@ const MahjongPractice: React.FC = () => {
   // 初始发牌函数
   const dealInitialTiles = () => {
     const shuffled = shuffleTiles(allTiles);
-    let playerDealt = shuffled.slice(0, 16); // 发16张牌给玩家
-    let remaining = shuffled.slice(16); // 剩余的牌
-    const initialDoorTiles: Tile[] = []; // 初始门前牌
-
-    // 检查初始牌中是否有白板
-    let hasWhiteDragon = true;
-    while (hasWhiteDragon && remaining.length > 0) {
-      hasWhiteDragon = false;
-
-      // 检查每张牌是否是白板
-      for (let i = 0; i < playerDealt.length; i++) {
-        if (playerDealt[i] === WHITE_DRAGON_CODE) {
-          // 找到白板，添加到门前
-          initialDoorTiles.push({
-            id: `door-${initialDoorTiles.length}-${Date.now()}`,
-            code: WHITE_DRAGON_CODE,
-            isDrawn: false,
-            isPreSelected: false
-          });
-
-          // 从剩余牌堆中抓一张新牌替换白板
-          if (remaining.length > 0) {
-            playerDealt[i] = remaining[0];
-            remaining = remaining.slice(1);
-
-            // 继续检查，因为新抓的牌可能还是白板
-            hasWhiteDragon = true;
-          }
-        }
-      }
-    }
+    let playerDealt = shuffled.slice(0, 13); // 发13张牌给玩家
+    let remaining = shuffled.slice(13); // 剩余的牌
 
     // 转换为Tile对象
     const playerTilesObjects = playerDealt.map((code, index) => ({
@@ -83,54 +49,7 @@ const MahjongPractice: React.FC = () => {
 
     setPlayerTiles(sortedTiles);
     setRemainingTiles(remaining);
-    setDiscardedTiles([]);
-    setDoorTiles(initialDoorTiles);
     setCanDraw(checkCanDraw(sortedTiles.length));
-    setShowConcealedKong(false);
-  };
-
-  // 处理白板的函数
-  const handleWhiteDragon = (drawnTile: Tile, currentRemainingTiles: number[]) => {
-    // 添加白板到门前
-    const doorTile = { ...drawnTile, isPreSelected: false, isDrawn: false };
-    const updatedDoorTiles = [...doorTiles, doorTile];
-    setDoorTiles(updatedDoorTiles);
-
-    // 如果还有牌，再抓一张
-    if (currentRemainingTiles.length > 0) {
-      const newDrawnTileCode = currentRemainingTiles[0];
-      const newRemainingTiles = currentRemainingTiles.slice(1);
-
-      // 创建新抓的牌
-      const newTile: Tile = {
-        id: `drawn-${Date.now() + 1}`,
-        code: newDrawnTileCode,
-        isDrawn: true,
-        isPreSelected: false
-      };
-
-      // 检查新抓的牌是否是白板
-      if (newDrawnTileCode === WHITE_DRAGON_CODE) {
-        // 递归处理
-        return handleWhiteDragon(newTile, newRemainingTiles);
-      } else {
-        // 把新抓的牌加入手牌
-        const updatedPlayerTiles = [...playerTiles.map(tile => ({
-          ...tile,
-          isPreSelected: false
-        })), newTile];
-
-        setPlayerTiles(updatedPlayerTiles);
-        setRemainingTiles(newRemainingTiles);
-        setCanDraw(checkCanDraw(updatedPlayerTiles.length));
-
-        return { remainingTiles: newRemainingTiles };
-      }
-    } else {
-      // 没有牌了，保持当前状态
-      setCanDraw(checkCanDraw(playerTiles.length));
-      return { remainingTiles: currentRemainingTiles };
-    }
   };
 
   // 抓牌函数
@@ -156,19 +75,11 @@ const MahjongPractice: React.FC = () => {
         isPreSelected: false
       }));
 
-      // 检查是否抓到白板
-      if (drawnTileCode === WHITE_DRAGON_CODE) {
-        const result = handleWhiteDragon(newTile, newRemainingTiles);
-        if (result) {
-          setRemainingTiles(result.remainingTiles);
-        }
-      } else {
-        // 正常添加牌
-        const updatedPlayerTiles = [...resetTiles, newTile];
-        setPlayerTiles(updatedPlayerTiles);
-        setRemainingTiles(newRemainingTiles);
-        setCanDraw(checkCanDraw(updatedPlayerTiles.length));
-      }
+      // 正常添加牌
+      const updatedPlayerTiles = [...resetTiles, newTile];
+      setPlayerTiles(updatedPlayerTiles);
+      setRemainingTiles(newRemainingTiles);
+      setCanDraw(checkCanDraw(updatedPlayerTiles.length));
     }
   };
 
@@ -185,17 +96,13 @@ const MahjongPractice: React.FC = () => {
 
     setPlayerTiles(updatedTiles);
 
-    // 检查是否有暗杠
-    const hasKong = checkConcealedKong(playerTiles, selectedTileId);
-    setShowConcealedKong(hasKong);
-
     // 进行进张分析
     const selectedTile = playerTiles.find(tile => tile.id === selectedTileId);
     if (selectedTile) {
       const { tilesToDraw } = analyzeTilesToDraw(
         playerTiles, 
-        discardedTiles, 
-        doorTiles, 
+        [], 
+        [], 
         selectedTile.code
       );
       
@@ -204,59 +111,6 @@ const MahjongPractice: React.FC = () => {
       setShowTilesToDrawAnalysis(true);
     } else {
       setShowTilesToDrawAnalysis(false);
-    }
-  };
-
-  // 暗杠操作
-  const performConcealedKong = () => {
-    // 找到预选的牌
-    const preSelectedTile = playerTiles.find(tile => tile.isPreSelected);
-    if (!preSelectedTile) return;
-
-    // 找到所有相同的牌
-    const sameValueTiles = playerTiles.filter(t => t.code === preSelectedTile.code);
-    if (sameValueTiles.length !== 4) return;
-
-    // 从手牌中移除这4张牌
-    const updatedPlayerTiles = playerTiles.filter(t => t.code !== preSelectedTile.code);
-
-    // 添加到门前区域
-    const kongTiles = sameValueTiles.map((tile, index) => ({
-      id: `kong-${Date.now()}-${index}`,
-      code: tile.code,
-      isDrawn: false,
-      isPreSelected: false
-    }));
-
-    setDoorTiles([...doorTiles, ...kongTiles]);
-    setPlayerTiles(updatedPlayerTiles);
-    setShowConcealedKong(false);
-
-    // 抓一张牌补充
-    if (remainingTiles.length > 0) {
-      const drawnTileCode = remainingTiles[0];
-      const newRemainingTiles = remainingTiles.slice(1);
-
-      const newTile: Tile = {
-        id: `drawn-${Date.now()}`,
-        code: drawnTileCode,
-        isDrawn: true,
-        isPreSelected: false
-      };
-
-      // 检查是否抓到白板
-      if (drawnTileCode === WHITE_DRAGON_CODE) {
-        const result = handleWhiteDragon(newTile, newRemainingTiles);
-        if (result) {
-          setRemainingTiles(result.remainingTiles);
-        }
-      } else {
-        // 正常添加牌
-        const finalPlayerTiles = [...updatedPlayerTiles, newTile];
-        setPlayerTiles(finalPlayerTiles);
-        setRemainingTiles(newRemainingTiles);
-        setCanDraw(checkCanDraw(finalPlayerTiles.length));
-      }
     }
   };
 
@@ -272,9 +126,6 @@ const MahjongPractice: React.FC = () => {
     // 从手牌中移除预选的牌
     const updatedPlayerTiles = playerTiles.filter(tile => !tile.isPreSelected);
 
-    // 将预选的牌加入到河里
-    const discardedTile = { ...preSelectedTile, isPreSelected: false };
-
     // 移除所有牌的isDrawn状态，并重新排序
     const resetTiles = updatedPlayerTiles.map(tile => ({
       ...tile,
@@ -285,9 +136,7 @@ const MahjongPractice: React.FC = () => {
     const sortedTiles = sortTiles(resetTiles);
 
     setPlayerTiles(sortedTiles);
-    setDiscardedTiles([...discardedTiles, discardedTile]);
     setCanDraw(checkCanDraw(sortedTiles.length));
-    setShowConcealedKong(false);
     // 清除进张分析
     setShowTilesToDrawAnalysis(false);
   };
@@ -369,9 +218,19 @@ const MahjongPractice: React.FC = () => {
     // 最终排序的牌组
     const sortedGroups = sortedKeys.flatMap(key => groupedResults[key]);
     
+    // 计算面子数和对子数
+    const meldCount = sortedGroups.filter(group => group.type === 'pung' || group.type === 'chow').length;
+    const pairCount = sortedGroups.filter(group => group.type === 'pair').length;
+    
+    // 判断是否和牌
+    const isWinning = meldCount === 4 && pairCount === 1;
+    
     return (
       <div className="analysis-result">
-        <h3>分析牌型结果 (已组合: {analysisResult.used}/{analysisResult.total}张)</h3>
+        <h3>
+          分析牌型结果 (已组合: {analysisResult.used}/{analysisResult.total}张)
+          {isWinning && <span className="winning-hand"> - 和牌！</span>}
+        </h3>
         
         <div className="analysis-all-groups">
           {sortedGroups.map((group, index) => (
@@ -402,8 +261,8 @@ const MahjongPractice: React.FC = () => {
     
     const { badDiscard } = analyzeTilesToDraw(
       playerTiles, 
-      discardedTiles, 
-      doorTiles, 
+      [], 
+      [], 
       selectedTile.code
     );
     
@@ -475,14 +334,6 @@ const MahjongPractice: React.FC = () => {
         >
           抓牌
         </button>
-        {showConcealedKong && (
-          <button
-            className="action-button kong-button"
-            onClick={performConcealedKong}
-          >
-            暗杠
-          </button>
-        )}
         <button className="action-button" onClick={analyzeTiles}>
           分析牌型
         </button>
@@ -515,30 +366,6 @@ const MahjongPractice: React.FC = () => {
             {renderAnalysisResult()}
           </div>
         )}
-
-        {doorTiles.length > 0 && (
-          <div className="door-tiles">
-            <h3>门前 ({doorTiles.length}张)</h3>
-            <div className="tiles-row door-row">
-              {doorTiles.map((tile, index) => (
-                <div key={`door-${index}`} className="tile door-tile">
-                  {getTileUnicode(tile.code)}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="discarded-tiles">
-          <h3>牌河 ({discardedTiles.length}张)</h3>
-          <div className="tiles-row discarded-row">
-            {discardedTiles.map((tile, index) => (
-              <div key={`discarded-${index}`} className="tile discarded-tile">
-                {getTileUnicode(tile.code)}
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );

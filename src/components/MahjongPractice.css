@@ -88,7 +88,7 @@
   margin-bottom: 20px;
 }
 
-.player-tiles h3, .discarded-tiles h3 {
+.player-tiles h3 {
   margin-top: 0;
   margin-bottom: 15px;
   font-size: 1rem;
@@ -96,40 +96,37 @@
   text-align: center;
 }
 
-.mobile-view .player-tiles h3, 
-.mobile-view .discarded-tiles h3 {
+.mobile-view .player-tiles h3 {
   margin-bottom: 10px;
   font-size: 0.9rem;
 }
 
 .tiles-row {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 10px;
-  min-height: 130px; /* 确保预选牌上移后，下面的元素不会跳动 */
+  padding: 10px;
+  min-height: auto;
 }
 
 .mobile-view .tiles-row {
   gap: 5px;
-  min-height: 100px;
-  justify-content: flex-start;
+  padding: 8px;
 }
 
 .small-mobile-view .tiles-row {
   gap: 3px;
-  min-height: 90px;
+  padding: 5px;
 }
 
 .tile {
-  font-size: 5rem;
+  font-size: 4rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 60px;
-  height: 120px;
+  width: 50px;
+  height: 100px;
   background: none;
   box-shadow: none;
   border-radius: 0;
@@ -141,106 +138,53 @@
 }
 
 .mobile-view .tile {
-  font-size: 4rem;
-  width: 55px;
+  font-size: 3.5rem;
+  width: 45px;
   height: 90px;
 }
 
 .small-mobile-view .tile {
-  font-size: 3.5rem;
-  width: 50px;
+  font-size: 3rem;
+  width: 40px;
   height: 80px;
 }
 
 /* 抓牌的样式 */
 .drawn-tile {
-  margin-left: 20px; /* 抓进来的牌与其他牌有一定间距 */
+  margin-left: 10px;
   position: relative;
 }
 
 .mobile-view .drawn-tile {
-  margin-left: 12px;
+  margin-left: 8px;
 }
 
 .drawn-tile::before {
   content: '';
   position: absolute;
-  left: -12px;
+  left: -8px;
   height: 100%;
   width: 2px;
   background-color: rgba(255, 255, 255, 0.3);
 }
 
 .mobile-view .drawn-tile::before {
-  left: -8px;
+  left: -6px;
   width: 1px;
 }
 
 /* 预选牌的样式 */
 .pre-selected {
-  transform: translateY(-20px) !important; /* 预选的牌上移20px */
-  filter: brightness(1.2); /* 亮度提高，更加明显 */
+  transform: translateY(-15px) !important;
+  filter: brightness(1.2);
 }
 
 .mobile-view .pre-selected {
-  transform: translateY(-15px) !important;
-}
-
-.small-mobile-view .pre-selected {
   transform: translateY(-12px) !important;
 }
 
-/* 牌河样式 */
-.discarded-tiles {
-  margin-top: 40px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.mobile-view .discarded-tiles {
-  margin-top: 30px;
-  padding-top: 15px;
-}
-
-.small-mobile-view .discarded-tiles {
-  margin-top: 20px;
-  padding-top: 10px;
-}
-
-.discarded-row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 5px;
-  min-height: auto;
-}
-
-.mobile-view .discarded-row {
-  gap: 3px;
-}
-
-.discarded-tile {
-  width: 50px;
-  height: 70px;
-  font-size: 3rem;
-  opacity: 0.8;
-  cursor: default;
-}
-
-.mobile-view .discarded-tile {
-  width: 45px;
-  height: 60px;
-  font-size: 2.8rem;
-}
-
-.small-mobile-view .discarded-tile {
-  width: 40px;
-  height: 55px;
-  font-size: 2.5rem;
-}
-
-.discarded-tile:hover {
-  transform: none;
+.small-mobile-view .pre-selected {
+  transform: translateY(-10px) !important;
 }
 
 h2 {
@@ -271,12 +215,6 @@ h2 {
     width: 55px;
     height: 110px;
   }
-  
-  .discarded-tile {
-    width: 45px;
-    height: 65px;
-    font-size: 2.8rem;
-  }
 }
 
 @media (max-width: 992px) {
@@ -284,12 +222,6 @@ h2 {
     font-size: 4rem;
     width: 50px;
     height: 100px;
-  }
-  
-  .discarded-tile {
-    width: 40px;
-    height: 60px;
-    font-size: 2.5rem;
   }
 }
 
@@ -313,12 +245,6 @@ h2 {
     height: 95px;
   }
   
-  .discarded-tile {
-    width: 38px;
-    height: 55px;
-    font-size: 2.4rem;
-  }
-  
   .drawn-tile {
     margin-left: 15px;
   }
@@ -340,12 +266,6 @@ h2 {
     width: 45px;
     height: 90px;
   }
-  
-  .discarded-tile {
-    width: 35px;
-    height: 50px;
-    font-size: 2.2rem;
-  }
 }
 
 @media (max-width: 400px) {
@@ -362,66 +282,6 @@ h2 {
     font-size: 3.2rem;
     width: 42px;
     height: 85px;
-  }
-  
-  .discarded-tile {
-    width: 32px;
-    height: 45px;
-    font-size: 2rem;
-  }
-}
-
-/* 门前样式 */
-.door-tiles {
-  margin-bottom: 30px;
-  padding-top: 10px;
-  padding-bottom: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-.door-row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 5px;
-  min-height: auto;
-}
-
-.door-tile {
-  width: 55px;
-  height: 75px;
-  font-size: 3.5rem;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  cursor: default;
-}
-
-.door-tile:hover {
-  transform: none;
-}
-
-/* 暗杠按钮样式 */
-.kong-button {
-  background-color: #a83232;
-  animation: pulse 1.5s infinite;
-}
-
-.kong-button:hover {
-  background-color: #c04545;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(168, 50, 50, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(168, 50, 50, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(168, 50, 50, 0);
   }
 }
 
@@ -557,6 +417,25 @@ h2 {
   color: #e0e0e0;
   text-align: center;
   padding: 0 15px;
+}
+
+.winning-hand {
+  color: #4CAF50;
+  font-weight: bold;
+  margin-left: 10px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 /* 进张分析容器样式 */
